@@ -1,0 +1,125 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "React Google Maps",
+  "projectDescription": "React components and hooks for the Google Maps JavaScript API",
+  "theme": "palm",
+  "primaryColor": "#4285F4",
+  "lightColor": "#34A853",
+  "darkColor": "#1967D2",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/api-provider",
+              "concepts/maps",
+              "concepts/markers",
+              "concepts/controlled-vs-uncontrolled"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/using-maps-libraries",
+              "guides/event-handling",
+              "guides/styling-maps",
+              "guides/3d-maps",
+              "guides/deckgl-integration",
+              "guides/ssr-and-frameworks",
+              "guides/migrating-from-react-wrapper"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/overview",
+              "examples/basic-map",
+              "examples/markers-and-infowindows",
+              "examples/custom-markers",
+              "examples/directions",
+              "examples/clustering"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Components",
+            "pages": [
+              "api/components/api-provider",
+              "api/components/map",
+              "api/components/map-3d",
+              "api/components/marker",
+              "api/components/advanced-marker",
+              "api/components/marker-3d",
+              "api/components/info-window",
+              "api/components/popover-3d",
+              "api/components/pin",
+              "api/components/map-control",
+              "api/components/static-map"
+            ]
+          },
+          {
+            "group": "Hooks",
+            "pages": [
+              "api/hooks/use-map",
+              "api/hooks/use-map-3d",
+              "api/hooks/use-maps-library",
+              "api/hooks/use-api-loading-status",
+              "api/hooks/use-api-is-loaded"
+            ]
+          },
+          {
+            "group": "Types & Utilities",
+            "pages": [
+              "api/types/events",
+              "api/types/camera",
+              "api/utilities/lat-lng-utils"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "React components for Google Maps (Map, Marker, InfoWindow)",
+    "Hooks for Maps JavaScript API libraries (Places, Directions, Geocoding)",
+    "Full TypeScript support with type definitions",
+    "Controlled and uncontrolled component modes",
+    "Advanced markers with custom HTML content",
+    "3D maps and markers support",
+    "Integration with deck.gl for data visualization",
+    "Server-side rendering (SSR) support"
+  ],
+  "publicApiSurface": [
+    "APIProvider",
+    "Map",
+    "Map3D",
+    "Marker",
+    "AdvancedMarker",
+    "Marker3D",
+    "InfoWindow",
+    "Popover3D",
+    "Pin",
+    "MapControl",
+    "StaticMap",
+    "useMap",
+    "useMap3D",
+    "useMapsLibrary",
+    "useApiLoadingStatus",
+    "useApiIsLoaded"
+  ]
+}
