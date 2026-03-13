@@ -1,0 +1,232 @@
+---
+title: "Event Types"
+description: "Event types used in React Google Maps components"
+---
+
+## Overview
+
+React Google Maps provides strongly-typed event handlers for all map interactions. All event callbacks receive a single event object with type-specific properties.
+
+## Base Event Types
+
+### MapEvent
+
+The base event type for all map events.
+
+```typescript
+interface MapEvent {
+  type: string;
+  map: google.maps.Map;
+  stoppable: boolean;
+  stop(): void;
+  domEvent?: MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event;
+}
+```
+
+<ParamField path="type" type="string">
+  The event type name from the Google Maps JavaScript API (e.g., `'click'`, `'bounds_changed'`)
+</ParamField>
+
+<ParamField path="map" type="google.maps.Map">
+  The map instance that dispatched the event
+</ParamField>
+
+<ParamField path="stoppable" type="boolean">
+  Whether this event can be stopped from propagating. Only `true` for `MapMouseEvent` types.
+</ParamField>
+
+<ParamField path="stop" type="() => void">
+  For stoppable events, calling this method prevents further event processing
+</ParamField>
+
+<ParamField path="domEvent" type="MouseEvent | TouchEvent | PointerEvent | KeyboardEvent | Event">
+  The original DOM event that triggered this map event (only available for mouse events)
+</ParamField>
+
+## MapMouseEvent
+
+Extends `MapEvent` with mouse interaction details.
+
+```typescript
+interface MapMouseEvent extends MapEvent {
+  detail: {
+    latLng: google.maps.LatLngLiteral | null;
+    placeId?: string | null;
+  };
+}
+```
+
+<ParamField path="detail.latLng" type="google.maps.LatLngLiteral | null">
+  The geographic coordinates where the mouse event occurred
+</ParamField>
+
+<ParamField path="detail.placeId" type="string | null">
+  If a place marker was clicked, this contains the Google Places API place ID
+</ParamField>
+
+### Usage Example
+
+```tsx
+import {Map, MapMouseEvent} from '@vis.gl/react-google-maps';
+
+function MyMap() {
+  const handleClick = (event: MapMouseEvent) => {
+    console.log('Clicked at:', event.detail.latLng);
+    
+    if (event.detail.placeId) {
+      console.log('Clicked place:', event.detail.placeId);
+    }
+    
+    // Stop event propagation
+    event.stop();
+  };
+
+  return (
+    <Map
+      defaultCenter={{lat: 40.7, lng: -74}}
+      defaultZoom={12}
+      onClick={handleClick}
+    />
+  );
+}
+```
+
+## MapCameraChangedEvent
+
+Emitted when the map's camera position changes.
+
+```typescript
+interface MapCameraChangedEvent extends MapEvent {
+  detail: MapCameraProps;
+}
+
+interface MapCameraProps {
+  center: google.maps.LatLngLiteral;
+  zoom: number;
+  heading: number;
+  tilt: number;
+  bounds: google.maps.LatLngBoundsLiteral;
+}
+```
+
+<ParamField path="detail.center" type="google.maps.LatLngLiteral">
+  The current center coordinates of the map
+</ParamField>
+
+<ParamField path="detail.zoom" type="number">
+  The current zoom level (0-22)
+</ParamField>
+
+<ParamField path="detail.heading" type="number">
+  The current heading in degrees (0-360)
+</ParamField>
+
+<ParamField path="detail.tilt" type="number">
+  The current tilt/pitch angle in degrees (0-67.5)
+</ParamField>
+
+<ParamField path="detail.bounds" type="google.maps.LatLngBoundsLiteral">
+  The currently visible bounding box with `north`, `south`, `east`, `west` properties
+</ParamField>
+
+### Usage Example
+
+```tsx
+import {Map, MapCameraChangedEvent} from '@vis.gl/react-google-maps';
+import {useState} from 'react';
+
+function MyMap() {
+  const [cameraState, setCameraState] = useState({
+    center: {lat: 40.7, lng: -74},
+    zoom: 12
+  });
+
+  const handleCameraChange = (event: MapCameraChangedEvent) => {
+    const {center, zoom, heading, tilt, bounds} = event.detail;
+    
+    console.log('Camera changed:', {center, zoom, heading, tilt});
+    console.log('Visible bounds:', bounds);
+    
+    setCameraState({center, zoom});
+  };
+
+  return (
+    <Map
+      {...cameraState}
+      onCameraChanged={handleCameraChange}
+    />
+  );
+}
+```
+
+## Event Mapping
+
+React Google Maps converts all Google Maps JavaScript API events to React-style event handlers:
+
+| Google Maps Event | React Prop | Event Type |
+|-------------------|------------|------------|
+| `bounds_changed` | `onBoundsChanged` and `onCameraChanged` | `MapCameraChangedEvent` |
+| `center_changed` | `onCenterChanged` | `MapCameraChangedEvent` |
+| `zoom_changed` | `onZoomChanged` | `MapCameraChangedEvent` |
+| `heading_changed` | `onHeadingChanged` | `MapCameraChangedEvent` |
+| `tilt_changed` | `onTiltChanged` | `MapCameraChangedEvent` |
+| `click` | `onClick` | `MapMouseEvent` |
+| `contextmenu` | `onContextmenu` | `MapMouseEvent` |
+| `dblclick` | `onDblclick` | `MapMouseEvent` |
+| `mousemove` | `onMousemove` | `MapMouseEvent` |
+| `mouseover` | `onMouseover` | `MapMouseEvent` |
+| `mouseout` | `onMouseout` | `MapMouseEvent` |
+| `drag` | `onDrag` | `MapEvent` |
+| `dragend` | `onDragend` | `MapEvent` |
+| `dragstart` | `onDragstart` | `MapEvent` |
+| `idle` | `onIdle` | `MapEvent` |
+| `projection_changed` | `onProjectionChanged` | `MapEvent` |
+| `maptypeid_changed` | `onMapTypeIdChanged` | `MapEvent` |
+| `renderingtype_changed` | `onRenderingTypeChanged` | `MapEvent` |
+| `tilesloaded` | `onTilesLoaded` | `MapEvent` |
+
+## Advanced Example
+
+```tsx
+import {Map, MapMouseEvent, MapCameraChangedEvent} from '@vis.gl/react-google-maps';
+
+function InteractiveMap() {
+  const handleClick = (event: MapMouseEvent) => {
+    if (event.detail.latLng) {
+      addMarker(event.detail.latLng);
+    }
+  };
+
+  const handleRightClick = (event: MapMouseEvent) => {
+    event.stop(); // Prevent default context menu
+    showCustomMenu(event.detail.latLng);
+  };
+
+  const handleCameraChange = (event: MapCameraChangedEvent) => {
+    // Update URL with current view
+    updateURL(event.detail);
+  };
+
+  const handleIdle = (event: MapEvent) => {
+    // Map has finished moving, load markers in view
+    loadMarkersInBounds();
+  };
+
+  return (
+    <Map
+      defaultCenter={{lat: 40.7, lng: -74}}
+      defaultZoom={12}
+      onClick={handleClick}
+      onContextmenu={handleRightClick}
+      onCameraChanged={handleCameraChange}
+      onIdle={handleIdle}
+    />
+  );
+}
+```
+
+## See Also
+
+- [Map Component](/api/components/map) - Full event handler documentation
+- [Event Handling Guide](/guides/event-handling) - Patterns and best practices
+- [Camera Types](/api/types/camera) - Camera-related type definitions

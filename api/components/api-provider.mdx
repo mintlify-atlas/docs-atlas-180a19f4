@@ -1,0 +1,143 @@
+---
+title: APIProvider
+description: Component to wrap the application and load the Google Maps JavaScript API
+---
+
+# APIProvider
+
+The `APIProvider` component loads the Google Maps JavaScript API and provides context for all other components from this library. It should be added at a high level in your component tree, typically near the root of your application.
+
+## Import
+
+```tsx
+import {APIProvider} from '@vis.gl/react-google-maps';
+```
+
+## Usage
+
+The `APIProvider` requires a Google Maps Platform API Key to function:
+
+```tsx
+import React from 'react';
+import {APIProvider, Map} from '@vis.gl/react-google-maps';
+
+const App = () => (
+  <APIProvider apiKey={'Your API key here'}>
+    <Map zoom={10} center={{lat: 53.54992, lng: 10.00678}} />
+  </APIProvider>
+);
+
+export default App;
+```
+
+## Props
+
+### Required
+
+<ParamField path="apiKey" type="string" required>
+  Your Google Maps Platform API Key. To create an API key, see the [Get API Key documentation](https://developers.google.com/maps/documentation/javascript/get-api-key).
+  
+  **Note:** This can only be set on first render and cannot be changed later.
+</ParamField>
+
+### Optional
+
+<ParamField path="libraries" type="string[]">
+  A list of [libraries](https://developers.google.com/maps/documentation/javascript/libraries) to load immediately. Libraries can also be loaded later using the `useMapsLibrary` hook.
+  
+  ```tsx
+  <APIProvider apiKey={API_KEY} libraries={['places', 'geometry']}>
+  ```
+</ParamField>
+
+<ParamField path="version" type="string">
+  The [version](https://developers.google.com/maps/documentation/javascript/versions) of the Google Maps JavaScript API to load. Defaults to `'weekly'`.
+  
+  **Note:** This can only be set on first render.
+</ParamField>
+
+<ParamField path="region" type="string">
+  The [region code](https://developers.google.com/maps/documentation/javascript/localization#Region) to use. This alters the map's behavior based on a given country or territory.
+  
+  **Note:** This can only be set on first render.
+</ParamField>
+
+<ParamField path="language" type="string">
+  The language to use for UI elements and display of labels on map tiles. The default value is determined by the browser's language settings.
+  
+  **Note:** This can only be set on first render.
+</ParamField>
+
+<ParamField path="authReferrerPolicy" type="string">
+  If your API key is configured for an entire subdomain, set this to `'origin'` to limit the amount of data sent when authorizing requests.
+  
+  **Note:** This can only be set on first render.
+</ParamField>
+
+<ParamField path="channel" type="number">
+  Track usage of the Google Maps JavaScript API via numeric channels. Only values from 0-999 are accepted. See [Usage Tracking per Channel](https://developers.google.com/maps/reporting-and-monitoring/reporting#usage-tracking-per-channel).
+</ParamField>
+
+<ParamField path="solutionChannel" type="string">
+  To help Google understand usage patterns, the library sets a default `solution_channel` parameter. Set to an empty string to opt out.
+  
+  Default: `'GMP_visgl_rgmlibrary_v1_default'`
+</ParamField>
+
+<ParamField path="disableUsageAttribution" type="boolean">
+  Set to `true` to opt out of sending usage attribution IDs. These IDs help Google understand which libraries are helpful to developers.
+  
+  Default: `false`
+</ParamField>
+
+<ParamField path="fetchAppCheckToken" type="() => Promise<google.maps.MapsAppCheckTokenResult>">
+  A function that returns a Promise resolving to a Firebase App Check token. When provided, this enables [App Check](https://developers.google.com/maps/documentation/javascript/maps-app-check) to protect your API key from unauthorized use.
+  
+  ```tsx
+  import {initializeApp} from 'firebase/app';
+  import {getToken, initializeAppCheck, ReCaptchaEnterpriseProvider} from 'firebase/app-check';
+  
+  const app = initializeApp({/* config */});
+  const appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
+    isTokenAutoRefreshEnabled: true
+  });
+  
+  <APIProvider 
+    apiKey={API_KEY}
+    fetchAppCheckToken={() => getToken(appCheck, false)}
+  >
+  ```
+</ParamField>
+
+## Events
+
+<ParamField path="onLoad" type="() => void">
+  Callback invoked once the Google Maps JavaScript API has finished loading.
+</ParamField>
+
+<ParamField path="onError" type="(error: unknown) => void">
+  Callback invoked if there is an error loading the Google Maps JavaScript API.
+</ParamField>
+
+## Important Notes
+
+<Warning>
+  The Google Maps JavaScript API can only be loaded once per page. Settings like `language`, `region`, and `version` cannot be changed after the initial load. Make sure these props have their final values on first render.
+</Warning>
+
+<Note>
+  If multiple `APIProvider` components exist (e.g., multiple React roots), only the first one to render will load the API. All instances should use identical props.
+</Note>
+
+## Hooks
+
+The following hooks work with the `APIProvider`:
+
+- [`useApiIsLoaded()`](/api/hooks/use-api-is-loaded) - Check if the API has finished loading
+- [`useApiLoadingStatus()`](/api/hooks/use-api-loading-status) - Get the current loading status
+- [`useMapsLibrary()`](/api/hooks/use-maps-library) - Load additional Maps libraries
+
+## Source
+
+[View source on GitHub](https://github.com/visgl/react-google-maps/blob/main/src/components/api-provider.tsx)

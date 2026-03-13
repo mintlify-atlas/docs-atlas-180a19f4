@@ -1,0 +1,493 @@
+---
+title: SSR and Frameworks
+description: Learn how to use React Google Maps with Next.js, Remix, and other server-side rendering frameworks
+---
+
+When using React Google Maps with server-side rendering (SSR) frameworks, you need to ensure that map components are only rendered on the client side, as the Google Maps JavaScript API does not support server-side rendering.
+
+<Note>
+The Google Maps JavaScript API requires a browser environment and cannot be rendered on the server. All map components must be client-side only.
+</Note>
+
+## Next.js Integration
+
+Next.js is a popular React framework with built-in SSR support. Here's how to use React Google Maps with both the App Router and Pages Router.
+
+### Next.js App Router
+
+With the App Router, use the `'use client'` directive to mark components as client-only:
+
+<Steps>
+
+### Create a Client Component
+
+Create a new component file with the `'use client'` directive at the top:
+
+```tsx filename="components/map.tsx"
+'use client';
+
+import { APIProvider, Map } from '@vis.gl/react-google-maps';
+
+export default function MapComponent() {
+  return (
+    <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+      <Map
+        mapId={'bf51a910020fa25a'}
+        defaultZoom={5}
+        defaultCenter={{ lat: 53, lng: 10 }}
+        gestureHandling={'greedy'}
+        disableDefaultUI={true}
+        style={{ width: '100%', height: '500px' }}
+      />
+    </APIProvider>
+  );
+}
+```
+
+### Use in a Server Component
+
+Import and use the client component in your server component:
+
+```tsx filename="app/page.tsx"
+import MapComponent from '@/components/map';
+
+export default function Page() {
+  return (
+    <main>
+      <h1>My Map Page</h1>
+      <MapComponent />
+    </main>
+  );
+}
+```
+
+### Environment Variables
+
+Add your API key to `.env.local`:
+
+```bash filename=".env.local"
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+</Steps>
+
+<Warning>
+Always prefix client-side environment variables with `NEXT_PUBLIC_` in Next.js to make them available in the browser.
+</Warning>
+
+### Next.js Pages Router
+
+With the Pages Router, use dynamic imports with `ssr: false`:
+
+```tsx filename="pages/index.tsx"
+import dynamic from 'next/dynamic';
+
+// Import the map component without SSR
+const MapComponent = dynamic(() => import('../components/map'), {
+  ssr: false,
+  loading: () => <div>Loading map...</div>
+});
+
+export default function Home() {
+  return (
+    <main>
+      <h1>My Map Page</h1>
+      <MapComponent />
+    </main>
+  );
+}
+```
+
+## Remix Integration
+
+Remix is a full-stack React framework. Use the `ClientOnly` component to render maps only on the client.
+
+<Steps>
+
+### Install remix-utils
+
+```bash
+npm install remix-utils
+```
+
+### Create Map Component
+
+Create a client-side map component:
+
+```tsx filename="components/map.tsx"
+import { APIProvider, Map } from '@vis.gl/react-google-maps';
+
+export default function MapComponent() {
+  return (
+    <APIProvider apiKey={process.env.GOOGLE_MAPS_API_KEY!}>
+      <Map
+        mapId={'bf51a910020fa25a'}
+        defaultZoom={5}
+        defaultCenter={{ lat: 53, lng: 10 }}
+        gestureHandling={'greedy'}
+        disableDefaultUI={true}
+        style={{ width: '100%', height: '500px' }}
+      />
+    </APIProvider>
+  );
+}
+```
+
+### Use ClientOnly Wrapper
+
+Wrap the map component with `ClientOnly`:
+
+```tsx filename="routes/_index.tsx"
+import { ClientOnly } from 'remix-utils/client-only';
+import MapComponent from '~/components/map';
+
+function MapFallback() {
+  return (
+    <div style={{ width: '100%', height: '500px', background: '#e0e0e0' }}>
+      Loading map...
+    </div>
+  );
+}
+
+export default function Index() {
+  return (
+    <main>
+      <h1>My Map Page</h1>
+      <ClientOnly fallback={<MapFallback />}>
+        {() => <MapComponent />}
+      </ClientOnly>
+    </main>
+  );
+}
+```
+
+### Environment Variables
+
+Add your API key to `.env`:
+
+```bash filename=".env"
+GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+</Steps>
+
+<Note>
+If you use a fallback component, ensure it has the same dimensions as your final map to prevent layout shifts.
+</Note>
+
+## Avoiding Layout Shifts
+
+When loading maps client-side, prevent layout shifts by matching fallback dimensions:
+
+```tsx
+import { ClientOnly } from 'remix-utils/client-only';
+import MapComponent from '~/components/map';
+
+function MapFallback() {
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '500px',
+        background: '#f0f0f0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      <div>Loading map...</div>
+    </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <ClientOnly fallback={<MapFallback />}>
+      {() => <MapComponent />}
+    </ClientOnly>
+  );
+}
+```
+
+## Loading States
+
+Use the `useApiLoadingStatus` hook to show loading states:
+
+```tsx
+'use client';
+
+import { APIProvider, Map, useApiLoadingStatus } from '@vis.gl/react-google-maps';
+import { APILoadingStatus } from '@vis.gl/react-google-maps';
+
+function MapWithLoadingState() {
+  return (
+    <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+      <MapContent />
+    </APIProvider>
+  );
+}
+
+function MapContent() {
+  const status = useApiLoadingStatus();
+
+  if (status === APILoadingStatus.LOADING) {
+    return <div>Loading Google Maps...</div>;
+  }
+
+  if (status === APILoadingStatus.FAILED) {
+    return <div>Failed to load Google Maps</div>;
+  }
+
+  return (
+    <Map
+      mapId={'bf51a910020fa25a'}
+      defaultZoom={5}
+      defaultCenter={{ lat: 53, lng: 10 }}
+      gestureHandling={'greedy'}
+      disableDefaultUI
+      style={{ width: '100%', height: '500px' }}
+    />
+  );
+}
+
+export default MapWithLoadingState;
+```
+
+## SvelteKit and Other Frameworks
+
+For other SSR frameworks, the principle is the same: ensure map components only render on the client.
+
+### SvelteKit Example
+
+```svelte
+<script>
+  import { browser } from '$app/environment';
+  import { onMount } from 'svelte';
+
+  let MapComponent;
+
+  onMount(async () => {
+    if (browser) {
+      MapComponent = (await import('./MapComponent.svelte')).default;
+    }
+  });
+</script>
+
+{#if browser && MapComponent}
+  <svelte:component this={MapComponent} />
+{:else}
+  <div>Loading map...</div>
+{/if}
+```
+
+## Static Site Generation (SSG)
+
+For static sites (Next.js SSG, Gatsby, etc.), you can pre-render pages but defer map rendering to the client:
+
+```tsx
+// Next.js with SSG
+export async function getStaticProps() {
+  // Fetch other data
+  return {
+    props: {
+      // Data props
+    }
+  };
+}
+
+export default function Page({ data }) {
+  return (
+    <main>
+      <h1>Static Page with Map</h1>
+      {/* Pre-rendered content */}
+      <MapComponent /> {/* Client-only map */}
+    </main>
+  );
+}
+```
+
+## Best Practices
+
+<Steps>
+
+### Use Environment Variables
+
+Store API keys in environment variables, never in code:
+
+```bash
+# .env.local (Next.js)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_key
+
+# .env (Remix)
+GOOGLE_MAPS_API_KEY=your_key
+```
+
+### Provide Loading States
+
+Always provide meaningful loading states to improve user experience:
+
+```tsx
+function MapFallback() {
+  return (
+    <div className="map-loading">
+      <Spinner />
+      <p>Loading map...</p>
+    </div>
+  );
+}
+```
+
+### Match Fallback Dimensions
+
+Prevent layout shifts by matching fallback and map dimensions:
+
+```tsx
+const MAP_STYLE = { width: '100%', height: '500px' };
+
+function MapFallback() {
+  return <div style={MAP_STYLE}>Loading...</div>;
+}
+
+function MapComponent() {
+  return <Map style={MAP_STYLE} {...props} />;
+}
+```
+
+### Handle API Load Failures
+
+Provide error states for when the API fails to load:
+
+```tsx
+function MapContent() {
+  const status = useApiLoadingStatus();
+
+  if (status === APILoadingStatus.FAILED) {
+    return (
+      <div className="map-error">
+        <p>Failed to load map. Please refresh the page.</p>
+      </div>
+    );
+  }
+
+  // Rest of component...
+}
+```
+
+</Steps>
+
+## Common Issues
+
+### "window is not defined" Error
+
+This error occurs when map code runs on the server. Ensure:
+
+- Use `'use client'` directive in Next.js App Router
+- Use `ClientOnly` in Remix
+- Use dynamic imports with `ssr: false` in Next.js Pages Router
+
+### API Key Not Found
+
+Ensure environment variables are:
+
+- Prefixed with `NEXT_PUBLIC_` for Next.js client-side
+- Defined in the correct `.env` file
+- Restarted the dev server after adding them
+
+### Layout Shifts
+
+Ensure your loading fallback has:
+
+- Same dimensions as the final map
+- Explicit width and height
+- No margin or padding differences
+
+## Complete Examples
+
+### Next.js App Router Example
+
+```tsx filename="app/map/page.tsx"
+import MapComponent from '@/components/map';
+
+export const metadata = {
+  title: 'Map Page',
+  description: 'Page with Google Maps'
+};
+
+export default function MapPage() {
+  return (
+    <main className="container">
+      <h1>Find Locations</h1>
+      <MapComponent />
+    </main>
+  );
+}
+```
+
+```tsx filename="components/map.tsx"
+'use client';
+
+import { useState } from 'react';
+import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
+
+export default function MapComponent() {
+  const [center] = useState({ lat: 40.7128, lng: -74.0060 });
+
+  return (
+    <div style={{ width: '100%', height: '500px' }}>
+      <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+        <Map
+          mapId={'bf51a910020fa25a'}
+          center={center}
+          zoom={12}
+          gestureHandling={'greedy'}
+          disableDefaultUI
+        >
+          <AdvancedMarker position={center} />
+        </Map>
+      </APIProvider>
+    </div>
+  );
+}
+```
+
+### Remix Example
+
+```tsx filename="app/routes/_index.tsx"
+import { ClientOnly } from 'remix-utils/client-only';
+import MapComponent from '~/components/map';
+
+function MapFallback() {
+  return (
+    <div
+      style={{
+        width: '100%',
+        height: '500px',
+        background: '#f5f5f5',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      Loading map...
+    </div>
+  );
+}
+
+export default function Index() {
+  return (
+    <div className="container">
+      <h1>Welcome to Remix</h1>
+      <ClientOnly fallback={<MapFallback />}>
+        {() => <MapComponent />}
+      </ClientOnly>
+    </div>
+  );
+}
+```
+
+## Related Resources
+
+- [Next.js Example](https://github.com/visgl/react-google-maps/tree/main/examples/nextjs)
+- [Remix Example](https://github.com/visgl/react-google-maps/tree/main/examples/remix)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Remix Documentation](https://remix.run/docs)

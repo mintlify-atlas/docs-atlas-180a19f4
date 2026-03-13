@@ -1,0 +1,216 @@
+---
+title: useMap
+description: Access Google Maps instances from context
+---
+
+The `useMap()` hook retrieves a [`google.maps.Map`](https://developers.google.com/maps/documentation/javascript/reference/map#Map) instance from the React context. It can access either a specific map by ID or the nearest parent map instance.
+
+## Import
+
+```tsx
+import {useMap} from '@vis.gl/react-google-maps';
+```
+
+## Signature
+
+```tsx
+function useMap(id?: string | null): google.maps.Map | null
+```
+
+## Parameters
+
+<ParamField path="id" type="string | null" default="null">
+  Optional ID of the map instance to retrieve. When omitted or `null`, returns the parent map instance or the default map.
+</ParamField>
+
+## Returns
+
+<ResponseField name="map" type="google.maps.Map | null">
+  The Google Maps instance. Returns `null` if:
+  - The hook is called outside of an `APIProvider`
+  - No map with the specified ID exists
+  - No parent or default map is available
+</ResponseField>
+
+## Behavior
+
+The hook determines which map to return based on the following priority:
+
+1. **Explicit ID**: If an `id` parameter is provided, returns the map registered with that ID
+2. **Parent Map**: If no ID is specified and the hook is called within a `Map` component, returns that map instance
+3. **Default Map**: If no ID or parent map exists, returns the map registered with ID `'default'` (maps without an explicit `id` prop)
+
+## Usage
+
+### Single Map
+
+When there is only one map in your application, call `useMap()` without arguments:
+
+```tsx
+const MyComponent = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+
+    // Access map methods and properties
+    console.log('Map center:', map.getCenter());
+  }, [map]);
+
+  return <div>...</div>;
+};
+
+const App = () => (
+  <APIProvider apiKey={YOUR_API_KEY}>
+    <Map defaultCenter={{lat: 37.7749, lng: -122.4194}} defaultZoom={12} />
+    <MyComponent />
+  </APIProvider>
+);
+```
+
+### Multiple Maps by ID
+
+When working with multiple maps, assign each an `id` and reference them explicitly:
+
+```tsx
+const ControlPanel = () => {
+  const mainMap = useMap('main-map');
+  const miniMap = useMap('mini-map');
+
+  useEffect(() => {
+    if (!mainMap || !miniMap) return;
+
+    // Synchronize mini map with main map
+    const listener = mainMap.addListener('center_changed', () => {
+      miniMap.setCenter(mainMap.getCenter()!);
+    });
+
+    return () => listener.remove();
+  }, [mainMap, miniMap]);
+
+  return <div>Map Controls</div>;
+};
+
+const App = () => (
+  <APIProvider apiKey={YOUR_API_KEY}>
+    <Map id="main-map" defaultCenter={{lat: 37.7749, lng: -122.4194}} defaultZoom={12} />
+    <Map id="mini-map" defaultCenter={{lat: 37.7749, lng: -122.4194}} defaultZoom={8} />
+    <ControlPanel />
+  </APIProvider>
+);
+```
+
+### Within Map Children
+
+Components nested inside a `Map` automatically access their parent map:
+
+```tsx
+const MapOverlay = () => {
+  const map = useMap(); // Gets parent Map instance
+
+  useEffect(() => {
+    if (!map) return;
+
+    // Add custom controls or overlays
+    const controlDiv = document.createElement('div');
+    map.controls[google.maps.ControlPosition.TOP_CENTER].push(controlDiv);
+
+    return () => {
+      const index = map.controls[google.maps.ControlPosition.TOP_CENTER]
+        .getArray()
+        .indexOf(controlDiv);
+      if (index > -1) {
+        map.controls[google.maps.ControlPosition.TOP_CENTER].removeAt(index);
+      }
+    };
+  }, [map]);
+
+  return null;
+};
+
+const App = () => (
+  <APIProvider apiKey={YOUR_API_KEY}>
+    <Map defaultCenter={{lat: 37.7749, lng: -122.4194}} defaultZoom={12}>
+      <MapOverlay />
+    </Map>
+  </APIProvider>
+);
+```
+
+## Common Patterns
+
+### Accessing Map Methods
+
+```tsx
+const MapController = () => {
+  const map = useMap();
+
+  const panToLocation = (lat: number, lng: number) => {
+    if (!map) return;
+    map.panTo({lat, lng});
+  };
+
+  const zoomIn = () => {
+    if (!map) return;
+    const currentZoom = map.getZoom();
+    if (currentZoom) map.setZoom(currentZoom + 1);
+  };
+
+  return (
+    <div>
+      <button onClick={() => panToLocation(37.7749, -122.4194)}>Pan to SF</button>
+      <button onClick={zoomIn}>Zoom In</button>
+    </div>
+  );
+};
+```
+
+### Adding Map Listeners
+
+```tsx
+const MapEventLogger = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+
+    const clickListener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
+      console.log('Clicked at:', e.latLng?.toJSON());
+    });
+
+    const zoomListener = map.addListener('zoom_changed', () => {
+      console.log('New zoom level:', map.getZoom());
+    });
+
+    return () => {
+      clickListener.remove();
+      zoomListener.remove();
+    };
+  }, [map]);
+
+  return null;
+};
+```
+
+## Error Handling
+
+The hook logs an error and returns `null` if called outside an `APIProvider`:
+
+```tsx
+// ❌ This will log an error
+const BadComponent = () => {
+  const map = useMap(); // null - no APIProvider ancestor
+  return <div>...</div>;
+};
+
+// ✅ Correct usage
+const GoodComponent = () => (
+  <APIProvider apiKey={YOUR_API_KEY}>
+    <MapConsumer />
+  </APIProvider>
+);
+```
+
+## Source
+
+[`src/hooks/use-map.ts`](https://github.com/visgl/react-google-maps/blob/main/src/hooks/use-map.ts)

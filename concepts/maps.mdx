@@ -1,0 +1,318 @@
+---
+title: Map Component
+description: Understanding the Map component and camera control in React Google Maps
+---
+
+The `Map` component renders a Google map in your React application. It must be placed inside an `APIProvider` and provides the context for all map-related child components like markers and info windows.
+
+## Basic Usage
+
+At minimum, you need to provide a center point and zoom level:
+
+```tsx
+import {APIProvider, Map} from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={process.env.GOOGLE_MAPS_API_KEY}>
+      <Map
+        defaultCenter={{lat: 40.7128, lng: -74.0060}}
+        defaultZoom={12}
+      />
+    </APIProvider>
+  );
+}
+```
+
+## Camera Properties
+
+The map's viewport is controlled by four camera parameters:
+
+### center
+
+The geographic coordinates at the center of the map:
+
+```tsx
+<Map center={{lat: 40.7128, lng: -74.0060}} zoom={12} />
+```
+
+### zoom
+
+The zoom level determines the scale of the map:
+
+- `1` - World view
+- `5` - Continent/landmass
+- `10` - City
+- `15` - Streets
+- `20` - Buildings
+
+```tsx
+<Map center={{lat: 40.7128, lng: -74.0060}} zoom={15} />
+```
+
+### heading
+
+The compass bearing of the map in degrees clockwise from north (0-360):
+
+```tsx
+<Map
+  center={{lat: 40.7128, lng: -74.0060}}
+  zoom={15}
+  heading={90}  // facing east
+/>
+```
+
+### tilt
+
+The angle of the map in degrees from the viewport plane (0-67.5):
+
+```tsx
+<Map
+  center={{lat: 40.7128, lng: -74.0060}}
+  zoom={18}
+  tilt={45}  // 45-degree angle
+/>
+```
+
+<Note>
+Tilt is only available for vector maps and requires zoom level 10 or higher. Maximum tilt increases with zoom level.
+</Note>
+
+## Map ID and Styling
+
+To use cloud-based styling or advanced markers, provide a Map ID:
+
+```tsx
+<Map
+  mapId="YOUR_MAP_ID"
+  defaultCenter={{lat: 40.7128, lng: -74.0060}}
+  defaultZoom={12}
+/>
+```
+
+<Info>
+Create and style Map IDs in the [Google Cloud Console](https://console.cloud.google.com/google/maps-apis/studio/maps). Map IDs are required for `AdvancedMarker` components.
+</Info>
+
+## Color Scheme
+
+Control the map's appearance with color schemes:
+
+```tsx
+import {Map, ColorScheme} from '@vis.gl/react-google-maps';
+
+<Map
+  mapId="YOUR_MAP_ID"
+  colorScheme={ColorScheme.DARK}
+  defaultCenter={{lat: 40.7128, lng: -74.0060}}
+  defaultZoom={12}
+/>
+```
+
+Available schemes:
+- `ColorScheme.LIGHT` - Light mode
+- `ColorScheme.DARK` - Dark mode  
+- `ColorScheme.FOLLOW_SYSTEM` - Match system preference
+
+## Sizing the Map
+
+By default, the map fills its container with `width: 100%; height: 100%`. Control sizing with the `style` or `className` props:
+
+```tsx
+// Using inline styles
+<Map
+  style={{width: '100vw', height: '100vh'}}
+  defaultCenter={{lat: 40.7128, lng: -74.0060}}
+  defaultZoom={12}
+/>
+
+// Using CSS classes
+<Map
+  className="my-map"
+  defaultCenter={{lat: 40.7128, lng: -74.0060}}
+  defaultZoom={12}
+/>
+```
+
+## Controlled vs Uncontrolled
+
+Maps can be controlled or uncontrolled. See [Controlled vs Uncontrolled](/concepts/controlled-vs-uncontrolled) for details.
+
+### Uncontrolled (Recommended)
+
+Use `default*` props to set initial values. The map manages its own state:
+
+```tsx
+<Map
+  defaultCenter={{lat: 40.7128, lng: -74.0060}}
+  defaultZoom={12}
+  defaultHeading={0}
+  defaultTilt={0}
+/>
+```
+
+### Controlled
+
+Use regular props and handle state updates via events:
+
+```tsx
+import {useState, useCallback} from 'react';
+import {Map, MapCameraChangedEvent} from '@vis.gl/react-google-maps';
+
+function ControlledMap() {
+  const [cameraProps, setCameraProps] = useState({
+    center: {lat: 40.7128, lng: -74.0060},
+    zoom: 12
+  });
+
+  const handleCameraChange = useCallback((ev: MapCameraChangedEvent) => {
+    setCameraProps(ev.detail);
+  }, []);
+
+  return (
+    <Map
+      {...cameraProps}
+      onCameraChanged={handleCameraChange}
+    />
+  );
+}
+```
+
+## Initial Bounds
+
+Alternatively, set the initial view using a bounding box:
+
+```tsx
+<Map
+  defaultBounds={{
+    north: 40.8,
+    south: 40.6,
+    east: -73.9,
+    west: -74.1,
+    padding: 50  // padding in pixels
+  }}
+/>
+```
+
+## Map Options
+
+The `Map` component accepts all [google.maps.MapOptions](https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions):
+
+```tsx
+<Map
+  defaultCenter={{lat: 40.7128, lng: -74.0060}}
+  defaultZoom={12}
+  gestureHandling="greedy"
+  disableDefaultUI={true}
+  mapTypeId="satellite"
+  clickableIcons={false}
+/>
+```
+
+Common options:
+- `gestureHandling` - How users can pan/zoom (`"greedy"`, `"cooperative"`, `"none"`)
+- `disableDefaultUI` - Hide all default controls
+- `mapTypeId` - Map type (`"roadmap"`, `"satellite"`, `"hybrid"`, `"terrain"`)
+- `clickableIcons` - Whether default POI icons are clickable
+- `minZoom` / `maxZoom` - Restrict zoom levels
+- `restriction` - Restrict panning to specific bounds
+
+## Events
+
+Handle user interactions with event callbacks:
+
+```tsx
+function InteractiveMap() {
+  const handleClick = (event) => {
+    console.log('Clicked at:', event.detail.latLng);
+  };
+
+  const handleCameraChange = (event) => {
+    console.log('Camera:', event.detail);
+  };
+
+  return (
+    <Map
+      defaultCenter={{lat: 40.7128, lng: -74.0060}}
+      defaultZoom={12}
+      onClick={handleClick}
+      onCameraChanged={handleCameraChange}
+    />
+  );
+}
+```
+
+Available events:
+- `onClick` - User clicks the map
+- `onCameraChanged` - Camera position changes
+- `onDrag`, `onDragStart`, `onDragEnd` - User drags the map
+- `onZoomChanged` - Zoom level changes
+- `onIdle` - Map finishes moving
+
+See the [Map API reference](/api/components/map) for the complete event list.
+
+## Adding Child Components
+
+The `Map` provides context for child components:
+
+```tsx
+import {Map, AdvancedMarker, InfoWindow} from '@vis.gl/react-google-maps';
+
+<Map
+  mapId="YOUR_MAP_ID"
+  defaultCenter={{lat: 40.7128, lng: -74.0060}}
+  defaultZoom={12}
+>
+  <AdvancedMarker position={{lat: 40.7128, lng: -74.0060}} />
+  <InfoWindow position={{lat: 40.7128, lng: -74.0060}}>
+    <div>Hello World!</div>
+  </InfoWindow>
+</Map>
+```
+
+## Multiple Maps
+
+When using multiple maps, give each an `id` to distinguish them:
+
+```tsx
+import {Map, useMap} from '@vis.gl/react-google-maps';
+
+function MultipleMaps() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <Map id="map-1" defaultCenter={{lat: 40.7, lng: -74}} defaultZoom={10} />
+      <Map id="map-2" defaultCenter={{lat: 34.0, lng: -118}} defaultZoom={10} />
+    </APIProvider>
+  );
+}
+
+// Access specific map
+function MyComponent() {
+  const map1 = useMap('map-1');
+  const map2 = useMap('map-2');
+  // ...
+}
+```
+
+## Map Instance Caching
+
+Reduce costs by reusing map instances with the `reuseMaps` prop:
+
+```tsx
+<Map
+  mapId="YOUR_MAP_ID"
+  reuseMaps={true}
+  defaultCenter={{lat: 40.7128, lng: -74.0060}}
+  defaultZoom={12}
+/>
+```
+
+<Info>
+Maps with the same `mapId`, `colorScheme`, and `renderingType` will reuse the same instance when remounted.
+</Info>
+
+## Next Steps
+
+- Learn about [markers](/concepts/markers)
+- Understand [controlled vs uncontrolled components](/concepts/controlled-vs-uncontrolled)
+- Explore the [Map API reference](/api/components/map)

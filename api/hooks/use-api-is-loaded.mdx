@@ -1,0 +1,306 @@
+---
+title: useApiIsLoaded
+description: Check if the Google Maps JavaScript API has finished loading
+---
+
+The `useApiIsLoaded()` hook returns a boolean indicating whether the Google Maps JavaScript API has finished loading. This is the simplest way to check if the API is ready to use.
+
+## Import
+
+```tsx
+import {useApiIsLoaded} from '@vis.gl/react-google-maps';
+```
+
+## Signature
+
+```tsx
+function useApiIsLoaded(): boolean
+```
+
+## Parameters
+
+This hook takes no parameters.
+
+## Returns
+
+<ResponseField name="isLoaded" type="boolean">
+  Returns `true` when the Google Maps JavaScript API has successfully loaded and is ready to use. Returns `false` in all other states (not loaded, loading, or failed).
+</ResponseField>
+
+## Behavior
+
+The hook internally uses [`useApiLoadingStatus()`](/api/hooks/use-api-loading-status) and returns `true` only when the status is `APILoadingStatus.LOADED`.
+
+## Usage
+
+### Basic Loading Check
+
+```tsx
+const MyComponent = () => {
+  const apiIsLoaded = useApiIsLoaded();
+
+  useEffect(() => {
+    if (!apiIsLoaded) return;
+
+    // Safe to use google.maps namespace
+    const geocoder = new google.maps.Geocoder();
+    console.log('API is ready!');
+  }, [apiIsLoaded]);
+
+  return <div>{apiIsLoaded ? 'Maps Ready' : 'Loading...'}</div>;
+};
+```
+
+### Conditional Rendering
+
+```tsx
+const MapApplication = () => {
+  const apiIsLoaded = useApiIsLoaded();
+
+  if (!apiIsLoaded) {
+    return (
+      <div className="loading-container">
+        <div className="spinner" />
+        <p>Loading Google Maps...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <Map defaultCenter={{lat: 37.7749, lng: -122.4194}} defaultZoom={12} />
+      <MapControls />
+    </div>
+  );
+};
+```
+
+### Accessing Global API
+
+Wait for the API to load before accessing the `google.maps` namespace:
+
+```tsx
+const DirectionsComponent = () => {
+  const apiIsLoaded = useApiIsLoaded();
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+
+  useEffect(() => {
+    if (!apiIsLoaded) return;
+
+    // Now safe to create DirectionsService
+    const directionsService = new google.maps.DirectionsService();
+
+    directionsService.route(
+      {
+        origin: {lat: 37.7749, lng: -122.4194},
+        destination: {lat: 37.7849, lng: -122.4094},
+        travelMode: google.maps.TravelMode.DRIVING
+      },
+      (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+          setDirections(result);
+        }
+      }
+    );
+  }, [apiIsLoaded]);
+
+  return directions ? <div>Route loaded</div> : <div>Loading route...</div>;
+};
+```
+
+### Combined with useMapsLibrary
+
+Wait for both the base API and specific libraries:
+
+```tsx
+const PlacesSearch = () => {
+  const apiIsLoaded = useApiIsLoaded();
+  const placesLib = useMapsLibrary('places');
+  const map = useMap();
+
+  useEffect(() => {
+    // All three must be ready
+    if (!apiIsLoaded || !placesLib || !map) return;
+
+    const service = new placesLib.PlacesService(map);
+    const request = {
+      query: 'restaurants near me',
+      location: map.getCenter()!,
+      radius: 1000
+    };
+
+    service.textSearch(request, (results, status) => {
+      if (status === placesLib.PlacesServiceStatus.OK) {
+        console.log('Found places:', results);
+      }
+    });
+  }, [apiIsLoaded, placesLib, map]);
+
+  return <div>Searching...</div>;
+};
+```
+
+## Common Patterns
+
+### Loading Gate Component
+
+Create a reusable component that only renders children when loaded:
+
+```tsx
+const ApiLoadingGate: React.FC<{children: React.ReactNode}> = ({children}) => {
+  const apiIsLoaded = useApiIsLoaded();
+
+  if (!apiIsLoaded) {
+    return (
+      <div style={{padding: '20px', textAlign: 'center'}}>
+        <div>Loading Maps API...</div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+// Usage
+const App = () => (
+  <APIProvider apiKey={YOUR_API_KEY}>
+    <ApiLoadingGate>
+      <Map defaultCenter={{lat: 37.7749, lng: -122.4194}} defaultZoom={12} />
+    </ApiLoadingGate>
+  </APIProvider>
+);
+```
+
+### Feature Enablement
+
+Enable features progressively as the API loads:
+
+```tsx
+const MapControls = () => {
+  const apiIsLoaded = useApiIsLoaded();
+  const [searchEnabled, setSearchEnabled] = useState(false);
+
+  useEffect(() => {
+    if (apiIsLoaded) {
+      // Enable advanced features only after API loads
+      setSearchEnabled(true);
+    }
+  }, [apiIsLoaded]);
+
+  return (
+    <div>
+      <button disabled={!searchEnabled}>Search Places</button>
+      <button disabled={!searchEnabled}>Get Directions</button>
+      {!searchEnabled && <span>Loading features...</span>}
+    </div>
+  );
+};
+```
+
+### TypeScript Type Guards
+
+Use the loading state for type safety:
+
+```tsx
+const TypeSafeComponent = () => {
+  const apiIsLoaded = useApiIsLoaded();
+
+  const createMarker = (position: google.maps.LatLngLiteral) => {
+    if (!apiIsLoaded) {
+      console.warn('API not loaded yet');
+      return;
+    }
+
+    // TypeScript knows google.maps is available here
+    const marker = new google.maps.Marker({
+      position,
+      title: 'My Marker'
+    });
+
+    return marker;
+  };
+
+  return <button onClick={() => createMarker({lat: 37.7749, lng: -122.4194})}>Add Marker</button>;
+};
+```
+
+### Performance Monitoring
+
+```tsx
+const PerformanceTracker = () => {
+  const apiIsLoaded = useApiIsLoaded();
+  const [loadStartTime] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (apiIsLoaded) {
+      const loadTime = Date.now() - loadStartTime;
+      console.log(`Maps API loaded in ${loadTime}ms`);
+      
+      // Send to analytics
+      // analytics.track('maps_api_load_time', {duration: loadTime});
+    }
+  }, [apiIsLoaded, loadStartTime]);
+
+  return null;
+};
+```
+
+## When to Use
+
+Use `useApiIsLoaded()` when:
+- You need a simple true/false check for API availability
+- You want to conditionally render components based on load state
+- You need to access the global `google.maps` namespace directly
+- You want to enable/disable features based on API availability
+
+Use [`useApiLoadingStatus()`](/api/hooks/use-api-loading-status) instead when:
+- You need to distinguish between different loading states
+- You want to show specific error messages for auth failures vs. network errors
+- You need to implement retry logic for failed loads
+- You want detailed loading progress feedback
+
+## Notes
+
+- Returns `false` during all non-loaded states: `NOT_LOADED`, `LOADING`, `FAILED`, and `AUTH_FAILURE`
+- The hook will trigger a re-render when the API finishes loading
+- Safe to call multiple times - all instances share the same loading state
+- Returns `false` if called outside an `APIProvider`
+
+## Comparison Example
+
+```tsx
+// useApiIsLoaded - Simple boolean
+const SimpleComponent = () => {
+  const isLoaded = useApiIsLoaded();
+  return isLoaded ? <Map /> : <div>Loading...</div>;
+};
+
+// useApiLoadingStatus - Detailed status
+const DetailedComponent = () => {
+  const status = useApiLoadingStatus();
+  
+  if (status === APILoadingStatus.AUTH_FAILURE) {
+    return <div>Invalid API key</div>;
+  }
+  
+  if (status === APILoadingStatus.FAILED) {
+    return <div>Network error - please retry</div>;
+  }
+  
+  if (status === APILoadingStatus.LOADING) {
+    return <div>Loading Maps API...</div>;
+  }
+  
+  return <Map />;
+};
+```
+
+## Related
+
+- [`useApiLoadingStatus`](/api/hooks/use-api-loading-status) - Get detailed loading status information
+- [`useMapsLibrary`](/api/hooks/use-maps-library) - Load specific Maps API libraries
+- [`APIProvider`](/api/components/api-provider) - The provider component that loads the API
+
+## Source
+
+[`src/hooks/use-api-is-loaded.ts`](https://github.com/visgl/react-google-maps/blob/main/src/hooks/use-api-is-loaded.ts)

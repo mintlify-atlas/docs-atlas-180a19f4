@@ -1,0 +1,313 @@
+---
+title: MapControl
+description: Component to add custom UI controls to a map
+---
+
+# MapControl
+
+The `MapControl` component allows you to add custom UI controls to a Google Map at specific positions. It must be used inside a [`Map`](/api/components/map) component.
+
+## Import
+
+```tsx
+import {MapControl, ControlPosition} from '@vis.gl/react-google-maps';
+```
+
+## Usage
+
+```tsx
+import {Map, MapControl, ControlPosition} from '@vis.gl/react-google-maps';
+
+const App = () => (
+  <Map zoom={12} center={{lat: 37.7749, lng: -122.4194}}>
+    <MapControl position={ControlPosition.TOP_CENTER}>
+      <div style={{background: 'white', padding: 10, margin: 10}}>
+        <h3>Custom Control</h3>
+        <button>Click me</button>
+      </div>
+    </MapControl>
+  </Map>
+);
+```
+
+## Props
+
+### Required
+
+<ParamField path="position" type="ControlPosition" required>
+  The position where the control should be displayed on the map. Import `ControlPosition` from `@vis.gl/react-google-maps`.
+  
+  Available positions:
+  
+  **Standard Positions:**
+  - `ControlPosition.TOP_LEFT`
+  - `ControlPosition.TOP_CENTER` (or `TOP`)
+  - `ControlPosition.TOP_RIGHT`
+  - `ControlPosition.LEFT_TOP` (or `LEFT`)
+  - `ControlPosition.LEFT_CENTER`
+  - `ControlPosition.LEFT_BOTTOM`
+  - `ControlPosition.RIGHT_TOP` (or `RIGHT`)
+  - `ControlPosition.RIGHT_CENTER`
+  - `ControlPosition.RIGHT_BOTTOM`
+  - `ControlPosition.BOTTOM_LEFT`
+  - `ControlPosition.BOTTOM_CENTER` (or `BOTTOM`)
+  - `ControlPosition.BOTTOM_RIGHT`
+  - `ControlPosition.CENTER`
+  
+  **Logical Positions (for RTL support):**
+  - `ControlPosition.BLOCK_START_INLINE_START`
+  - `ControlPosition.BLOCK_START_INLINE_CENTER`
+  - `ControlPosition.BLOCK_START_INLINE_END`
+  - `ControlPosition.INLINE_START_BLOCK_CENTER`
+  - `ControlPosition.INLINE_START_BLOCK_START`
+  - `ControlPosition.INLINE_START_BLOCK_END`
+  - `ControlPosition.INLINE_END_BLOCK_START`
+  - `ControlPosition.INLINE_END_BLOCK_CENTER`
+  - `ControlPosition.INLINE_END_BLOCK_END`
+  - `ControlPosition.BLOCK_END_INLINE_START`
+  - `ControlPosition.BLOCK_END_INLINE_CENTER`
+  - `ControlPosition.BLOCK_END_INLINE_END`
+  
+  ```tsx
+  import {ControlPosition} from '@vis.gl/react-google-maps';
+  
+  <MapControl position={ControlPosition.TOP_RIGHT}>
+    <div>Control content</div>
+  </MapControl>
+  ```
+</ParamField>
+
+## Examples
+
+### Simple Button Control
+
+```tsx
+import {MapControl, ControlPosition} from '@vis.gl/react-google-maps';
+
+function ZoomControl() {
+  const map = useMap();
+  
+  return (
+    <MapControl position={ControlPosition.TOP_LEFT}>
+      <div style={{background: 'white', padding: 8, margin: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.3)'}}>
+        <button onClick={() => map?.setZoom((map.getZoom() ?? 10) + 1)}>
+          Zoom In
+        </button>
+        <button onClick={() => map?.setZoom((map.getZoom() ?? 10) - 1)}>
+          Zoom Out
+        </button>
+      </div>
+    </MapControl>
+  );
+}
+```
+
+### Search Box Control
+
+```tsx
+import {useState} from 'react';
+import {MapControl, ControlPosition} from '@vis.gl/react-google-maps';
+
+function SearchControl() {
+  const [query, setQuery] = useState('');
+  
+  const handleSearch = () => {
+    console.log('Searching for:', query);
+    // Implement search logic
+  };
+  
+  return (
+    <MapControl position={ControlPosition.TOP_CENTER}>
+      <div style={{
+        background: 'white',
+        padding: 10,
+        margin: 10,
+        borderRadius: 4,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+      }}>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search location..."
+          style={{padding: 8, marginRight: 8}}
+        />
+        <button onClick={handleSearch}>Search</button>
+      </div>
+    </MapControl>
+  );
+}
+```
+
+### Information Panel Control
+
+```tsx
+import {MapControl, ControlPosition} from '@vis.gl/react-google-maps';
+
+function InfoPanel() {
+  return (
+    <MapControl position={ControlPosition.RIGHT_TOP}>
+      <div style={{
+        background: 'white',
+        padding: 16,
+        margin: 10,
+        maxWidth: 300,
+        borderRadius: 4,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+      }}>
+        <h3>Map Information</h3>
+        <p>Use this map to explore the area.</p>
+        <ul>
+          <li>Zoom with scroll wheel</li>
+          <li>Pan by dragging</li>
+          <li>Click markers for details</li>
+        </ul>
+      </div>
+    </MapControl>
+  );
+}
+```
+
+### Legend Control
+
+```tsx
+import {MapControl, ControlPosition} from '@vis.gl/react-google-maps';
+
+function Legend() {
+  return (
+    <MapControl position={ControlPosition.BOTTOM_LEFT}>
+      <div style={{
+        background: 'white',
+        padding: 12,
+        margin: 10,
+        borderRadius: 4,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+      }}>
+        <h4 style={{margin: '0 0 8px 0'}}>Legend</h4>
+        <div style={{display: 'flex', alignItems: 'center', marginBottom: 4}}>
+          <div style={{width: 16, height: 16, background: 'red', marginRight: 8}} />
+          <span>Restaurants</span>
+        </div>
+        <div style={{display: 'flex', alignItems: 'center', marginBottom: 4}}>
+          <div style={{width: 16, height: 16, background: 'blue', marginRight: 8}} />
+          <span>Hotels</span>
+        </div>
+        <div style={{display: 'flex', alignItems: 'center'}}>
+          <div style={{width: 16, height: 16, background: 'green', marginRight: 8}} />
+          <span>Parks</span>
+        </div>
+      </div>
+    </MapControl>
+  );
+}
+```
+
+### Toggle Control
+
+```tsx
+import {useState} from 'react';
+import {MapControl, ControlPosition, useMap} from '@vis.gl/react-google-maps';
+
+function TrafficToggle() {
+  const map = useMap();
+  const [showTraffic, setShowTraffic] = useState(false);
+  const [trafficLayer, setTrafficLayer] = useState<google.maps.TrafficLayer | null>(null);
+  
+  useEffect(() => {
+    if (!map) return;
+    
+    const layer = new google.maps.TrafficLayer();
+    setTrafficLayer(layer);
+    
+    return () => {
+      layer.setMap(null);
+    };
+  }, [map]);
+  
+  useEffect(() => {
+    if (trafficLayer) {
+      trafficLayer.setMap(showTraffic ? map : null);
+    }
+  }, [showTraffic, map, trafficLayer]);
+  
+  return (
+    <MapControl position={ControlPosition.TOP_RIGHT}>
+      <div style={{
+        background: 'white',
+        padding: 10,
+        margin: 10,
+        borderRadius: 4,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
+      }}>
+        <label>
+          <input
+            type="checkbox"
+            checked={showTraffic}
+            onChange={(e) => setShowTraffic(e.target.checked)}
+          />
+          Show Traffic
+        </label>
+      </div>
+    </MapControl>
+  );
+}
+```
+
+## Styling Guidelines
+
+For controls to match the native Google Maps UI style:
+
+```tsx
+const controlStyle = {
+  background: 'white',
+  padding: 10,
+  margin: 10,
+  borderRadius: 2,
+  boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+  cursor: 'pointer'
+};
+
+<MapControl position={ControlPosition.TOP_LEFT}>
+  <div style={controlStyle}>
+    Custom Control
+  </div>
+</MapControl>
+```
+
+## Notes
+
+<Note>
+  The `MapControl` component uses React portals to render content in the map's control containers, allowing you to use any React components as children.
+</Note>
+
+<Note>
+  Multiple controls can be added to the same position. They will be stacked in the order they appear in the DOM.
+</Note>
+
+<Warning>
+  Custom controls should follow accessibility best practices, including proper keyboard navigation and ARIA labels.
+</Warning>
+
+## Hooks
+
+Use the [`useMap()`](/api/hooks/use-map) hook inside custom controls to interact with the map:
+
+```tsx
+import {useMap} from '@vis.gl/react-google-maps';
+
+function MyControl() {
+  const map = useMap();
+  
+  return (
+    <MapControl position={ControlPosition.TOP_LEFT}>
+      <button onClick={() => map?.setZoom(15)}>
+        Zoom to 15
+      </button>
+    </MapControl>
+  );
+}
+```
+
+## Source
+
+[View source on GitHub](https://github.com/visgl/react-google-maps/blob/main/src/components/map-control.tsx)

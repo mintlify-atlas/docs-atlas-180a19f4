@@ -1,0 +1,353 @@
+---
+title: Event Handling
+description: Learn how to handle map events, mouse interactions, and camera changes in React Google Maps
+---
+
+The `Map` component provides event handlers for user interactions, camera changes, and map state updates. All events follow a consistent pattern and provide typed event objects.
+
+## Map Events Overview
+
+The Map component supports three categories of events:
+
+1. **Camera Events** - Triggered when the map view changes
+2. **Mouse Events** - Triggered by user pointer interactions
+3. **Map State Events** - Triggered by map configuration changes
+
+## Camera Change Events
+
+Camera events fire when the map's viewport changes. The most commonly used is `onCameraChanged`:
+
+```tsx
+import { Map, MapCameraChangedEvent } from '@vis.gl/react-google-maps';
+
+function MyMap() {
+  const handleCameraChange = (event: MapCameraChangedEvent) => {
+    console.log('Camera changed:', event.detail);
+    // event.detail contains: center, zoom, heading, tilt, bounds
+  };
+
+  return (
+    <Map
+      defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+      defaultZoom={12}
+      onCameraChanged={handleCameraChange}
+    />
+  );
+}
+```
+
+### MapCameraChangedEvent Properties
+
+The `MapCameraChangedEvent.detail` object contains:
+
+```typescript
+{
+  center: google.maps.LatLngLiteral;  // { lat: number, lng: number }
+  zoom: number;                        // Current zoom level
+  heading: number;                     // Rotation in degrees (0-360)
+  tilt: number;                        // Tilt angle in degrees (0-90)
+  bounds: google.maps.LatLngBoundsLiteral; // Visible area bounds
+}
+```
+
+### Individual Camera Events
+
+You can also listen to specific camera property changes:
+
+```tsx
+<Map
+  onCenterChanged={(event) => console.log('Center:', event.detail.center)}
+  onZoomChanged={(event) => console.log('Zoom:', event.detail.zoom)}
+  onHeadingChanged={(event) => console.log('Heading:', event.detail.heading)}
+  onTiltChanged={(event) => console.log('Tilt:', event.detail.tilt)}
+  onBoundsChanged={(event) => console.log('Bounds:', event.detail.bounds)}
+/>
+```
+
+<Note>
+`onCameraChanged` is an alias for `onBoundsChanged` since bounds changes occur whenever the camera updates.
+</Note>
+
+## Mouse Events
+
+Mouse events provide information about user pointer interactions with the map:
+
+```tsx
+import { Map, MapMouseEvent } from '@vis.gl/react-google-maps';
+
+function MyMap() {
+  const handleClick = (event: MapMouseEvent) => {
+    if (event.detail.latLng) {
+      console.log('Clicked at:', event.detail.latLng);
+    }
+    
+    if (event.detail.placeId) {
+      console.log('Clicked on place:', event.detail.placeId);
+    }
+  };
+
+  return (
+    <Map
+      defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+      defaultZoom={12}
+      onClick={handleClick}
+      onDblclick={(e) => console.log('Double clicked')}
+      onContextmenu={(e) => console.log('Right clicked')}
+      onMousemove={(e) => console.log('Mouse moved')}
+      onMouseover={(e) => console.log('Mouse entered map')}
+      onMouseout={(e) => console.log('Mouse left map')}
+    />
+  );
+}
+```
+
+### MapMouseEvent Properties
+
+The `MapMouseEvent` object contains:
+
+```typescript
+{
+  type: string;                     // Event type (e.g., 'click')
+  map: google.maps.Map;            // Map instance
+  detail: {
+    latLng: google.maps.LatLngLiteral | null;  // Clicked coordinates
+    placeId: string | null;                     // Place ID if clicked on POI
+  };
+  domEvent: MouseEvent;            // Original DOM event
+  stoppable: true;                 // Can be stopped
+  stop: () => void;                // Stop event propagation
+}
+```
+
+### Stopping Event Propagation
+
+You can prevent event propagation using the `stop()` method:
+
+```tsx
+const handleClick = (event: MapMouseEvent) => {
+  event.stop(); // Prevents further event handling
+  console.log('Click handled');
+};
+```
+
+## Drag Events
+
+Handle map dragging with these events:
+
+```tsx
+<Map
+  onDragstart={(event) => console.log('Drag started')}
+  onDrag={(event) => console.log('Dragging...')}
+  onDragend={(event) => console.log('Drag ended')}
+/>
+```
+
+## Loading Events
+
+Monitor map loading state:
+
+```tsx
+<Map
+  onTilesLoaded={(event) => console.log('Tiles loaded')}
+  onIdle={(event) => console.log('Map is idle')}
+/>
+```
+
+<Note>
+The `onIdle` event fires when the map becomes idle after panning or zooming. It's useful for triggering data fetches or updates.
+</Note>
+
+## Practical Examples
+
+### Click to Add Marker
+
+```tsx
+import { useState } from 'react';
+import { Map, AdvancedMarker, MapMouseEvent } from '@vis.gl/react-google-maps';
+
+function MapWithMarkers() {
+  const [markers, setMarkers] = useState<google.maps.LatLngLiteral[]>([]);
+
+  const handleMapClick = (event: MapMouseEvent) => {
+    if (event.detail.latLng) {
+      setMarkers(prev => [...prev, event.detail.latLng!]);
+    }
+  };
+
+  return (
+    <Map
+      defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+      defaultZoom={12}
+      onClick={handleMapClick}
+    >
+      {markers.map((position, index) => (
+        <AdvancedMarker key={index} position={position} />
+      ))}
+    </Map>
+  );
+}
+```
+
+### Sync Camera State
+
+```tsx
+import { useState, useCallback } from 'react';
+import { Map, MapCameraChangedEvent } from '@vis.gl/react-google-maps';
+
+function MapWithCameraState() {
+  const [cameraState, setCameraState] = useState({
+    center: { lat: 40.7128, lng: -74.0060 },
+    zoom: 12,
+    heading: 0,
+    tilt: 0
+  });
+
+  const handleCameraChange = useCallback((event: MapCameraChangedEvent) => {
+    setCameraState({
+      center: event.detail.center,
+      zoom: event.detail.zoom,
+      heading: event.detail.heading,
+      tilt: event.detail.tilt
+    });
+  }, []);
+
+  return (
+    <>
+      <Map
+        center={cameraState.center}
+        zoom={cameraState.zoom}
+        heading={cameraState.heading}
+        tilt={cameraState.tilt}
+        onCameraChanged={handleCameraChange}
+      />
+      <div>
+        <p>Center: {cameraState.center.lat.toFixed(4)}, {cameraState.center.lng.toFixed(4)}</p>
+        <p>Zoom: {cameraState.zoom.toFixed(2)}</p>
+      </div>
+    </>
+  );
+}
+```
+
+### Marker Click with InfoWindow
+
+```tsx
+import { useState, useCallback } from 'react';
+import {
+  Map,
+  AdvancedMarker,
+  InfoWindow,
+  useAdvancedMarkerRef
+} from '@vis.gl/react-google-maps';
+
+function MapWithClickableMarkers() {
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [markerRef, marker] = useAdvancedMarkerRef();
+
+  const handleMarkerClick = useCallback(() => {
+    setSelectedMarker(marker);
+  }, [marker]);
+
+  const handleClose = useCallback(() => {
+    setSelectedMarker(null);
+  }, []);
+
+  return (
+    <Map
+      defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+      defaultZoom={12}
+      onClick={() => setSelectedMarker(null)}
+    >
+      <AdvancedMarker
+        ref={markerRef}
+        position={{ lat: 40.7128, lng: -74.0060 }}
+        onClick={handleMarkerClick}
+      />
+
+      {selectedMarker && (
+        <InfoWindow
+          anchor={selectedMarker}
+          onCloseClick={handleClose}
+        >
+          <h3>Marker Title</h3>
+          <p>Marker information goes here</p>
+        </InfoWindow>
+      )}
+    </Map>
+  );
+}
+```
+
+## Map3D Events
+
+The `Map3D` component has similar events with 3D-specific data:
+
+```tsx
+import { Map3D, Map3DCameraChangedEvent } from '@vis.gl/react-google-maps';
+
+function My3DMap() {
+  const handleCameraChange = (event: Map3DCameraChangedEvent) => {
+    console.log('3D Camera:', event.detail);
+    // event.detail contains: center (with altitude), range, heading, tilt, roll
+  };
+
+  return (
+    <Map3D
+      defaultCenter={{ lat: 37.7749, lng: -122.4194, altitude: 1000 }}
+      defaultRange={5000}
+      defaultHeading={0}
+      defaultTilt={45}
+      mode="SATELLITE"
+      onCameraChanged={handleCameraChange}
+    />
+  );
+}
+```
+
+## Event Handler Best Practices
+
+<Warning>
+Use `useCallback` for event handlers to prevent unnecessary re-renders and maintain referential equality.
+</Warning>
+
+- Always check if `event.detail.latLng` exists before using it
+- Use `useCallback` to memoize event handlers
+- Call `event.stop()` to prevent default behavior when needed
+- For performance-sensitive operations, debounce or throttle handlers
+- Clean up side effects in event handlers properly
+
+## Complete Event Reference
+
+### Camera Events
+- `onCameraChanged` - Any camera property changes
+- `onCenterChanged` - Center position changes
+- `onZoomChanged` - Zoom level changes  
+- `onHeadingChanged` - Rotation changes
+- `onTiltChanged` - Tilt angle changes
+- `onBoundsChanged` - Viewport bounds changes
+
+### Mouse Events
+- `onClick` - Single click on map
+- `onDblclick` - Double click on map
+- `onContextmenu` - Right click on map
+- `onMousemove` - Mouse movement over map
+- `onMouseover` - Mouse enters map
+- `onMouseout` - Mouse leaves map
+
+### Drag Events
+- `onDragstart` - Drag begins
+- `onDrag` - During drag
+- `onDragend` - Drag ends
+
+### State Events
+- `onTilesLoaded` - Map tiles finish loading
+- `onIdle` - Map becomes idle
+- `onProjectionChanged` - Map projection changes
+- `onMapTypeIdChanged` - Map type changes
+- `onRenderingTypeChanged` - Rendering type changes
+
+## Related Resources
+
+- [Map Component API](/api/components/map)
+- [Map3D Component API](/api/components/map-3d)
+- [Advanced Marker Interaction Example](https://github.com/visgl/react-google-maps/tree/main/examples/advanced-marker-interaction)

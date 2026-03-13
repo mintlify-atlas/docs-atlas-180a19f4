@@ -1,0 +1,189 @@
+---
+title: Marker
+description: Component to display a marker on a 2D map
+---
+
+# Marker
+
+The `Marker` component displays a traditional marker icon on a 2D map. It must be placed inside a [`Map`](/api/components/map) component.
+
+<Note>
+  For advanced features like custom HTML content, use [`AdvancedMarker`](/api/components/advanced-marker) instead.
+</Note>
+
+## Import
+
+```tsx
+import {Marker} from '@vis.gl/react-google-maps';
+```
+
+## Usage
+
+```tsx
+import {APIProvider, Map, Marker} from '@vis.gl/react-google-maps';
+
+const App = () => (
+  <APIProvider apiKey={process.env.GOOGLE_MAPS_API_KEY}>
+    <Map zoom={12} center={{lat: 37.7749, lng: -122.4194}}>
+      <Marker position={{lat: 37.7749, lng: -122.4194}} />
+    </Map>
+  </APIProvider>
+);
+```
+
+## Props
+
+The `Marker` component extends [`google.maps.MarkerOptions`](https://developers.google.com/maps/documentation/javascript/reference/marker#MarkerOptions).
+
+### Required
+
+<ParamField path="position" type="google.maps.LatLngLiteral" required>
+  The position where the marker should be displayed.
+  
+  ```tsx
+  <Marker position={{lat: 37.7749, lng: -122.4194}} />
+  ```
+</ParamField>
+
+### Optional
+
+<ParamField path="title" type="string">
+  Rollover text displayed when hovering over the marker.
+</ParamField>
+
+<ParamField path="label" type="string | google.maps.MarkerLabel">
+  A label displayed on the marker. Can be a single character or a `MarkerLabel` object.
+  
+  ```tsx
+  <Marker position={pos} label="A" />
+  
+  <Marker position={pos} label={{text: 'A', color: 'white'}} />
+  ```
+</ParamField>
+
+<ParamField path="icon" type="string | google.maps.Icon | google.maps.Symbol">
+  A custom icon for the marker. Can be a URL string, Icon object, or Symbol object.
+  
+  ```tsx
+  <Marker position={pos} icon="/custom-icon.png" />
+  ```
+</ParamField>
+
+<ParamField path="draggable" type="boolean">
+  Whether the marker can be dragged by the user.
+  
+  Default: `false`
+</ParamField>
+
+<ParamField path="opacity" type="number">
+  The opacity of the marker (0.0 - 1.0).
+  
+  Default: `1.0`
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  The z-index for display order. Markers with higher values appear in front.
+</ParamField>
+
+<ParamField path="clickable" type="boolean">
+  Whether the marker can receive click events.
+  
+  Default: `true`
+</ParamField>
+
+<ParamField path="animation" type="google.maps.Animation">
+  The animation to play: `google.maps.Animation.BOUNCE` or `google.maps.Animation.DROP`.
+  
+  ```tsx
+  <Marker 
+    position={pos} 
+    animation={google.maps.Animation.BOUNCE}
+  />
+  ```
+</ParamField>
+
+## Events
+
+<ParamField path="onClick" type="(event: google.maps.MapMouseEvent) => void">
+  Fired when the marker is clicked.
+  
+  ```tsx
+  <Marker 
+    position={pos}
+    onClick={(e) => console.log('Clicked at', e.latLng)}
+  />
+  ```
+</ParamField>
+
+<ParamField path="onDrag" type="(event: google.maps.MapMouseEvent) => void">
+  Fired repeatedly while the marker is being dragged.
+</ParamField>
+
+<ParamField path="onDragStart" type="(event: google.maps.MapMouseEvent) => void">
+  Fired when the user starts dragging the marker.
+</ParamField>
+
+<ParamField path="onDragEnd" type="(event: google.maps.MapMouseEvent) => void">
+  Fired when the user stops dragging the marker.
+  
+  ```tsx
+  <Marker
+    position={position}
+    draggable
+    onDragEnd={(e) => {
+      if (e.latLng) {
+        setPosition({lat: e.latLng.lat(), lng: e.latLng.lng()});
+      }
+    }}
+  />
+  ```
+</ParamField>
+
+<ParamField path="onMouseOver" type="(event: google.maps.MapMouseEvent) => void">
+  Fired when the mouse enters the marker.
+</ParamField>
+
+<ParamField path="onMouseOut" type="(event: google.maps.MapMouseEvent) => void">
+  Fired when the mouse leaves the marker.
+</ParamField>
+
+## Imperative API
+
+Access the marker instance using a ref:
+
+```tsx
+import {useRef} from 'react';
+import {Marker} from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const markerRef = useRef<google.maps.Marker>(null);
+  
+  const animateMarker = () => {
+    markerRef.current?.setAnimation(google.maps.Animation.BOUNCE);
+  };
+  
+  return <Marker ref={markerRef} position={{lat: 37.7749, lng: -122.4194}} />;
+}
+```
+
+Or use the `useMarkerRef` hook:
+
+```tsx
+import {useMarkerRef} from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const [markerRef, marker] = useMarkerRef();
+  
+  useEffect(() => {
+    if (marker) {
+      console.log('Marker position:', marker.getPosition());
+    }
+  }, [marker]);
+  
+  return <Marker ref={markerRef} position={{lat: 37.7749, lng: -122.4194}} />;
+}
+```
+
+## Source
+
+[View source on GitHub](https://github.com/visgl/react-google-maps/blob/main/src/components/marker.tsx)

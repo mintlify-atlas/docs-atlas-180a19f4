@@ -1,0 +1,266 @@
+---
+title: "Camera Types"
+description: "Camera and viewport types for map positioning"
+---
+
+## Overview
+
+React Google Maps uses camera types to control the map's viewport, including the center position, zoom level, orientation, and tilt angle.
+
+## MapCameraProps
+
+The main type for controlling map camera parameters.
+
+```typescript
+interface MapCameraProps {
+  center: google.maps.LatLngLiteral;
+  zoom: number;
+  heading: number;
+  tilt: number;
+  bounds: google.maps.LatLngBoundsLiteral;
+}
+```
+
+<ParamField path="center" type="google.maps.LatLngLiteral">
+  The geographic coordinates for the center of the map viewport
+  
+  ```typescript
+  interface LatLngLiteral {
+    lat: number;  // Latitude in degrees (-90 to 90)
+    lng: number;  // Longitude in degrees (-180 to 180)
+  }
+  ```
+</ParamField>
+
+<ParamField path="zoom" type="number">
+  The zoom level of the map. Valid range is 0-22:
+  - **0**: Entire world
+  - **5**: Continent
+  - **10**: City
+  - **15**: Streets
+  - **20**: Buildings
+</ParamField>
+
+<ParamField path="heading" type="number">
+  The compass heading in degrees, measured clockwise from cardinal direction North. Valid range: 0-360.
+</ParamField>
+
+<ParamField path="tilt" type="number">
+  The angle of incidence from the viewport plane to the map plane, in degrees. Valid range depends on zoom level:
+  - Zoom < 10: max 30°
+  - Zoom 10-15.5: interpolated (30° to 67.5°)
+  - Zoom > 15.5: max 67.5°
+</ParamField>
+
+<ParamField path="bounds" type="google.maps.LatLngBoundsLiteral">
+  The currently visible geographic bounding box
+  
+  ```typescript
+  interface LatLngBoundsLiteral {
+    north: number;  // Northern latitude bound
+    south: number;  // Southern latitude bound
+    east: number;   // Eastern longitude bound
+    west: number;   // Western longitude bound
+  }
+  ```
+</ParamField>
+
+## Usage in Controlled Mode
+
+```tsx
+import {Map, MapCameraChangedEvent, MapCameraProps} from '@vis.gl/react-google-maps';
+import {useState, useCallback} from 'react';
+
+function ControlledMap() {
+  const [cameraProps, setCameraProps] = useState<MapCameraProps>({
+    center: {lat: 40.7128, lng: -74.0060},
+    zoom: 12,
+    heading: 0,
+    tilt: 0
+  });
+
+  const handleCameraChange = useCallback((event: MapCameraChangedEvent) => {
+    setCameraProps(event.detail);
+  }, []);
+
+  return (
+    <Map
+      {...cameraProps}
+      onCameraChanged={handleCameraChange}
+    />
+  );
+}
+```
+
+## LatLng Types
+
+### google.maps.LatLngLiteral
+
+A plain JavaScript object representing a geographic coordinate.
+
+```typescript
+interface LatLngLiteral {
+  lat: number;
+  lng: number;
+}
+```
+
+<Note>
+When passing props to React Google Maps components, always use `LatLngLiteral` (the plain object form) rather than `google.maps.LatLng` class instances, since the Google Maps API may not be loaded when React components are first created.
+</Note>
+
+### google.maps.LatLng
+
+The Google Maps API class for coordinates (not typically used in props).
+
+```typescript
+class LatLng {
+  constructor(lat: number, lng: number);
+  lat(): number;
+  lng(): number;
+  toJSON(): LatLngLiteral;
+}
+```
+
+## Bounds Types
+
+### google.maps.LatLngBoundsLiteral
+
+A geographic rectangle defined by its corner coordinates.
+
+```typescript
+interface LatLngBoundsLiteral {
+  north: number;  // Maximum latitude
+  south: number;  // Minimum latitude
+  east: number;   // Maximum longitude
+  west: number;   // Minimum longitude
+}
+```
+
+### Extended Bounds with Padding
+
+The `defaultBounds` prop extends `LatLngBoundsLiteral` with optional padding:
+
+```typescript
+interface BoundsWithPadding extends google.maps.LatLngBoundsLiteral {
+  padding?: number | google.maps.Padding;
+}
+
+interface Padding {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+```
+
+### Usage Example
+
+```tsx
+import {Map} from '@vis.gl/react-google-maps';
+
+function MapWithBounds() {
+  return (
+    <Map
+      defaultBounds={{
+        north: 40.9,
+        south: 40.5,
+        east: -73.7,
+        west: -74.3,
+        padding: 50  // 50px padding on all sides
+      }}
+    />
+  );
+}
+```
+
+## Map3D Camera Types
+
+For 3D maps, camera parameters are similar but with altitude instead of zoom:
+
+```typescript
+interface Map3DCameraProps {
+  center: google.maps.LatLngAltitudeLiteral;
+  range?: number;
+  heading?: number;
+  tilt?: number;
+  roll?: number;
+}
+
+interface LatLngAltitudeLiteral {
+  lat: number;
+  lng: number;
+  altitude: number;  // Meters above ground
+}
+```
+
+<ParamField path="range" type="number">
+  Distance from the camera to the target point in meters (replaces zoom in 3D)
+</ParamField>
+
+<ParamField path="roll" type="number">
+  Camera roll angle in degrees around the forward axis
+</ParamField>
+
+### 3D Camera Example
+
+```tsx
+import {Map3D} from '@vis.gl/react-google-maps';
+
+function ThreeDMap() {
+  return (
+    <Map3D
+      defaultCenter={{
+        lat: 37.7749,
+        lng: -122.4194,
+        altitude: 0
+      }}
+      range={500}
+      heading={180}
+      tilt={60}
+      roll={0}
+    />
+  );
+}
+```
+
+## Controlled vs Uncontrolled
+
+Camera props can be controlled or uncontrolled using default values:
+
+```tsx
+// Uncontrolled (recommended for most cases)
+<Map 
+  defaultCenter={{lat: 40.7, lng: -74}}
+  defaultZoom={12}
+/>
+
+// Controlled (full camera state management)
+<Map 
+  center={cameraState.center}
+  zoom={cameraState.zoom}
+  onCameraChanged={handleCameraChange}
+/>
+
+// Mixed (only zoom is controlled)
+<Map
+  defaultCenter={{lat: 40.7, lng: -74}}
+  zoom={zoomLevel}
+  onZoomChanged={handleZoomChange}
+/>
+```
+
+<Tip>
+Use uncontrolled mode (with `default` prefixes) unless you need to synchronize camera state with other parts of your application.
+</Tip>
+
+## Utility Functions
+
+See [LatLng Utils](/api/utilities/lat-lng-utils) for helper functions to work with coordinate types.
+
+## See Also
+
+- [Map Component](/api/components/map) - Map camera props documentation
+- [Map3D Component](/api/components/map-3d) - 3D camera documentation
+- [Controlled vs Uncontrolled](/concepts/controlled-vs-uncontrolled) - Camera control patterns
+- [Event Types](/api/types/events) - MapCameraChangedEvent details

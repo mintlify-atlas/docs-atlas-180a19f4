@@ -1,0 +1,260 @@
+---
+title: AdvancedMarker
+description: Component to display an advanced marker with custom HTML content
+---
+
+# AdvancedMarker
+
+The `AdvancedMarker` component displays a marker with custom HTML content using the Google Maps `AdvancedMarkerElement` API. It must be placed inside a [`Map`](/api/components/map) component.
+
+<Note>
+  Advanced Markers require a [Map ID](https://developers.google.com/maps/documentation/get-map-id) and only work with vector maps.
+</Note>
+
+## Import
+
+```tsx
+import {AdvancedMarker, CollisionBehavior} from '@vis.gl/react-google-maps';
+```
+
+## Usage
+
+### Basic Marker
+
+```tsx
+import {APIProvider, Map, AdvancedMarker} from '@vis.gl/react-google-maps';
+
+const App = () => (
+  <APIProvider apiKey={process.env.GOOGLE_MAPS_API_KEY}>
+    <Map mapId="YOUR_MAP_ID" zoom={12} center={{lat: 37.7749, lng: -122.4194}}>
+      <AdvancedMarker position={{lat: 37.7749, lng: -122.4194}} />
+    </Map>
+  </APIProvider>
+);
+```
+
+### Custom HTML Content
+
+```tsx
+import {AdvancedMarker} from '@vis.gl/react-google-maps';
+
+<AdvancedMarker position={{lat: 37.7749, lng: -122.4194}}>
+  <div style={{
+    width: 40,
+    height: 40,
+    background: 'red',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'white'
+  }}>
+    <span>SF</span>
+  </div>
+</AdvancedMarker>
+```
+
+### With Pin Component
+
+```tsx
+import {AdvancedMarker, Pin} from '@vis.gl/react-google-maps';
+
+<AdvancedMarker position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#FF0000" borderColor="#000" glyphColor="#FFF" />
+</AdvancedMarker>
+```
+
+## Props
+
+The `AdvancedMarker` extends [`google.maps.marker.AdvancedMarkerElementOptions`](https://developers.google.com/maps/documentation/javascript/reference/advanced-markers#AdvancedMarkerElementOptions).
+
+### Required
+
+<ParamField path="position" type="google.maps.LatLngLiteral" required>
+  The position where the marker should be displayed.
+  
+  ```tsx
+  <AdvancedMarker position={{lat: 37.7749, lng: -122.4194}} />
+  ```
+</ParamField>
+
+### Optional
+
+<ParamField path="title" type="string">
+  Rollover text displayed when hovering over the marker.
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  The z-index for display order. Markers with higher values appear in front.
+</ParamField>
+
+<ParamField path="clickable" type="boolean">
+  Whether the marker can receive click events. Auto-detected based on event handlers if not specified.
+  
+  Default: `true` when `onClick` is provided
+</ParamField>
+
+<ParamField path="draggable" type="boolean">
+  Whether the marker can be dragged by the user. Auto-detected based on drag event handlers if not specified.
+  
+  Default: `true` when drag handlers are provided
+</ParamField>
+
+<ParamField path="collisionBehavior" type="CollisionBehavior">
+  How the marker behaves when it collides with other markers or labels.
+  
+  - `CollisionBehavior.REQUIRED`: Always shown
+  - `CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL`: Shown and hides optional markers
+  - `CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY`: May be hidden
+  
+  ```tsx
+  import {CollisionBehavior} from '@vis.gl/react-google-maps';
+  
+  <AdvancedMarker 
+    position={pos}
+    collisionBehavior={CollisionBehavior.REQUIRED}
+  />
+  ```
+</ParamField>
+
+<ParamField path="className" type="string">
+  CSS class name applied to the content element.
+</ParamField>
+
+<ParamField path="style" type="React.CSSProperties">
+  CSS styles applied to the content element.
+  
+  ```tsx
+  <AdvancedMarker 
+    position={pos}
+    style={{backgroundColor: 'white', padding: 8}}
+  >
+    <span>Custom marker</span>
+  </AdvancedMarker>
+  ```
+</ParamField>
+
+### Anchor Props
+
+<ParamField path="anchorLeft" type="string">
+  CSS length-percentage value to offset the anchor point horizontally from the top-left corner. Default: `'-50%'`
+  
+  ```tsx
+  <AdvancedMarker 
+    position={pos}
+    anchorLeft="-50%"
+    anchorTop="-100%"
+  >
+    <div>Anchored at bottom center</div>
+  </AdvancedMarker>
+  ```
+</ParamField>
+
+<ParamField path="anchorTop" type="string">
+  CSS length-percentage value to offset the anchor point vertically from the top-left corner. Default: `'-100%'`
+</ParamField>
+
+<ParamField path="anchorPoint" type="AdvancedMarkerAnchorPoint | [string, string]" deprecated>
+  **Deprecated:** Use `anchorLeft` and `anchorTop` instead.
+  
+  Predefined anchor point like `AdvancedMarkerAnchorPoint.BOTTOM` or custom `[x, y]` values.
+</ParamField>
+
+## Events
+
+<ParamField path="onClick" type="(event: google.maps.MapMouseEvent) => void">
+  Fired when the marker is clicked.
+  
+  ```tsx
+  <AdvancedMarker 
+    position={pos}
+    onClick={(e) => console.log('Clicked at', e.latLng)}
+  />
+  ```
+</ParamField>
+
+<ParamField path="onDrag" type="(event: google.maps.MapMouseEvent) => void">
+  Fired repeatedly while the marker is being dragged.
+</ParamField>
+
+<ParamField path="onDragStart" type="(event: google.maps.MapMouseEvent) => void">
+  Fired when the user starts dragging the marker.
+</ParamField>
+
+<ParamField path="onDragEnd" type="(event: google.maps.MapMouseEvent) => void">
+  Fired when the user stops dragging the marker.
+  
+  ```tsx
+  <AdvancedMarker
+    position={position}
+    draggable
+    onDragEnd={(e) => {
+      if (e.latLng) {
+        setPosition({lat: e.latLng.lat(), lng: e.latLng.lng()});
+      }
+    }}
+  />
+  ```
+</ParamField>
+
+<ParamField path="onMouseEnter" type="(event: MouseEvent) => void">
+  Fired when the mouse enters the marker element.
+</ParamField>
+
+<ParamField path="onMouseLeave" type="(event: MouseEvent) => void">
+  Fired when the mouse leaves the marker element.
+</ParamField>
+
+## Imperative API
+
+Access the marker instance using a ref:
+
+```tsx
+import {useRef} from 'react';
+import {AdvancedMarker} from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement>(null);
+  
+  const updatePosition = () => {
+    if (markerRef.current) {
+      markerRef.current.position = {lat: 37.8, lng: -122.4};
+    }
+  };
+  
+  return (
+    <AdvancedMarker 
+      ref={markerRef} 
+      position={{lat: 37.7749, lng: -122.4194}} 
+    />
+  );
+}
+```
+
+Or use the `useAdvancedMarkerRef` hook:
+
+```tsx
+import {useAdvancedMarkerRef} from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const [markerRef, marker] = useAdvancedMarkerRef();
+  
+  useEffect(() => {
+    if (marker) {
+      console.log('Marker element:', marker.element);
+    }
+  }, [marker]);
+  
+  return <AdvancedMarker ref={markerRef} position={{lat: 37.7749, lng: -122.4194}} />;
+}
+```
+
+## Requirements
+
+- A [Map ID](https://developers.google.com/maps/documentation/get-map-id) must be set on the parent `Map` component
+- Vector rendering must be enabled (this is the default for maps with a Map ID)
+- The Maps JavaScript API version must be `weekly` or `3.56` or higher
+
+## Source
+
+[View source on GitHub](https://github.com/visgl/react-google-maps/blob/main/src/components/advanced-marker.tsx)

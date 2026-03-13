@@ -1,0 +1,308 @@
+---
+title: useMap3D
+description: Access 3D map instances from context
+---
+
+The `useMap3D()` hook retrieves a [`google.maps.maps3d.Map3DElement`](https://developers.google.com/maps/documentation/javascript/reference/3d-map#Map3DElement) instance from the React context. It provides access to 3D map functionality including photorealistic 3D tiles and camera animations.
+
+## Import
+
+```tsx
+import {useMap3D} from '@vis.gl/react-google-maps';
+```
+
+## Signature
+
+```tsx
+function useMap3D(id?: string | null): google.maps.maps3d.Map3DElement | null
+```
+
+## Parameters
+
+<ParamField path="id" type="string | null" default="null">
+  Optional ID of the Map3D instance to retrieve. When omitted or `null`, returns the parent Map3D instance or the default Map3D.
+</ParamField>
+
+## Returns
+
+<ResponseField name="map3d" type="google.maps.maps3d.Map3DElement | null">
+  The 3D map instance. Returns `null` if:
+  - The hook is called outside of an `APIProvider`
+  - No Map3D with the specified ID exists
+  - No parent or default Map3D is available
+</ResponseField>
+
+## Behavior
+
+The hook determines which Map3D to return using this priority:
+
+1. **Explicit ID**: If an `id` parameter is provided, returns the Map3D registered with that ID
+2. **Parent Map3D**: If no ID is specified and called within a `Map3D` component, returns that instance
+3. **Default Map3D**: If no ID or parent exists, returns the Map3D registered with ID `'default'`
+
+## Usage
+
+### Single 3D Map
+
+Access the Map3D instance from child components:
+
+```tsx
+const CameraController = () => {
+  const map3d = useMap3D();
+
+  useEffect(() => {
+    if (!map3d) return;
+
+    console.log('Camera center:', map3d.center);
+    console.log('Camera range:', map3d.range);
+  }, [map3d]);
+
+  return null;
+};
+
+const App = () => (
+  <APIProvider apiKey={YOUR_API_KEY}>
+    <Map3D
+      defaultCenter={{lat: 37.7749, lng: -122.4194, altitude: 0}}
+      defaultRange={1000}
+      defaultHeading={0}
+      defaultTilt={60}
+    >
+      <CameraController />
+    </Map3D>
+  </APIProvider>
+);
+```
+
+### Multiple 3D Maps
+
+Manage multiple Map3D instances using IDs:
+
+```tsx
+const MultiMapController = () => {
+  const mainMap = useMap3D('main-map');
+  const miniMap = useMap3D('mini-map');
+
+  useEffect(() => {
+    if (!mainMap || !miniMap) return;
+
+    // Synchronize mini map camera with main map
+    const syncCamera = () => {
+      miniMap.center = mainMap.center;
+      miniMap.heading = mainMap.heading;
+    };
+
+    mainMap.addEventListener('gmp-centerchange', syncCamera);
+
+    return () => {
+      mainMap.removeEventListener('gmp-centerchange', syncCamera);
+    };
+  }, [mainMap, miniMap]);
+
+  return <div>Multi-map controls</div>;
+};
+
+const App = () => (
+  <APIProvider apiKey={YOUR_API_KEY}>
+    <Map3D
+      id="main-map"
+      defaultCenter={{lat: 37.7749, lng: -122.4194, altitude: 0}}
+      defaultRange={1000}
+    />
+    <Map3D
+      id="mini-map"
+      defaultCenter={{lat: 40.7128, lng: -74.006, altitude: 0}}
+      defaultRange={5000}
+    />
+    <MultiMapController />
+  </APIProvider>
+);
+```
+
+### Camera Animations
+
+Trigger camera animations using the Map3D instance:
+
+```tsx
+const CameraAnimations = () => {
+  const map3d = useMap3D();
+
+  const flyAround = () => {
+    if (!map3d) return;
+
+    // Type assertion for animation methods
+    const animatedMap = map3d as google.maps.maps3d.Map3DElement & {
+      flyCameraAround: (options: google.maps.maps3d.FlyAroundAnimationOptions) => void;
+      flyCameraTo: (options: google.maps.maps3d.FlyToAnimationOptions) => void;
+      stopCameraAnimation: () => void;
+    };
+
+    animatedMap.flyCameraAround({
+      camera: {
+        center: {lat: 37.7749, lng: -122.4194, altitude: 0},
+        range: 1000,
+        heading: 0,
+        tilt: 60
+      },
+      durationMillis: 10000,
+      repeatCount: 1
+    });
+  };
+
+  const flyTo = () => {
+    if (!map3d) return;
+
+    const animatedMap = map3d as any;
+    animatedMap.flyCameraTo({
+      endCamera: {
+        center: {lat: 40.7128, lng: -74.006, altitude: 0},
+        range: 2000,
+        heading: 90,
+        tilt: 67.5
+      },
+      durationMillis: 5000
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={flyAround}>Fly Around</button>
+      <button onClick={flyTo}>Fly to NYC</button>
+    </div>
+  );
+};
+```
+
+<Note>
+  For typed camera animation access, consider using the `Map3DRef` exposed via `useRef` on the `Map3D` component instead of type assertions.
+</Note>
+
+## Common Patterns
+
+### Reading Camera State
+
+```tsx
+const CameraInfo = () => {
+  const map3d = useMap3D();
+  const [info, setInfo] = useState<string>('');
+
+  useEffect(() => {
+    if (!map3d) return;
+
+    const updateInfo = () => {
+      const {lat, lng, altitude} = map3d.center;
+      setInfo(
+        `Center: (${lat.toFixed(4)}, ${lng.toFixed(4)}, ${altitude?.toFixed(0)}m)\n` +
+        `Range: ${map3d.range.toFixed(0)}m\n` +
+        `Heading: ${map3d.heading.toFixed(1)}°\n` +
+        `Tilt: ${map3d.tilt.toFixed(1)}°`
+      );
+    };
+
+    map3d.addEventListener('gmp-centerchange', updateInfo);
+    map3d.addEventListener('gmp-rangechange', updateInfo);
+    updateInfo();
+
+    return () => {
+      map3d.removeEventListener('gmp-centerchange', updateInfo);
+      map3d.removeEventListener('gmp-rangechange', updateInfo);
+    };
+  }, [map3d]);
+
+  return <pre>{info}</pre>;
+};
+```
+
+### Updating Camera Position
+
+```tsx
+const CameraControls = () => {
+  const map3d = useMap3D();
+
+  const setPosition = (center: google.maps.LatLngAltitudeLiteral) => {
+    if (!map3d) return;
+    map3d.center = center;
+  };
+
+  const adjustRange = (delta: number) => {
+    if (!map3d) return;
+    map3d.range = Math.max(100, map3d.range + delta);
+  };
+
+  const rotate = (degrees: number) => {
+    if (!map3d) return;
+    map3d.heading = (map3d.heading + degrees) % 360;
+  };
+
+  return (
+    <div>
+      <button onClick={() => setPosition({lat: 37.7749, lng: -122.4194, altitude: 0})}>
+        Go to San Francisco
+      </button>
+      <button onClick={() => adjustRange(-100)}>Zoom In</button>
+      <button onClick={() => adjustRange(100)}>Zoom Out</button>
+      <button onClick={() => rotate(45)}>Rotate 45°</button>
+    </div>
+  );
+};
+```
+
+### Listening to Events
+
+```tsx
+const EventLogger = () => {
+  const map3d = useMap3D();
+
+  useEffect(() => {
+    if (!map3d) return;
+
+    const handleClick = (e: Event) => {
+      const customEvent = e as CustomEvent<{position: google.maps.LatLngAltitudeLiteral}>;
+      console.log('Clicked at:', customEvent.detail.position);
+    };
+
+    const handleCenterChange = () => {
+      console.log('Camera moved to:', map3d.center);
+    };
+
+    map3d.addEventListener('gmp-click', handleClick);
+    map3d.addEventListener('gmp-centerchange', handleCenterChange);
+
+    return () => {
+      map3d.removeEventListener('gmp-click', handleClick);
+      map3d.removeEventListener('gmp-centerchange', handleCenterChange);
+    };
+  }, [map3d]);
+
+  return null;
+};
+```
+
+## Error Handling
+
+The hook logs an error and returns `null` if called outside an `APIProvider`:
+
+```tsx
+// ❌ This will log an error
+const BadComponent = () => {
+  const map3d = useMap3D(); // null - no APIProvider ancestor
+  return <div>...</div>;
+};
+
+// ✅ Correct usage
+const GoodComponent = () => (
+  <APIProvider apiKey={YOUR_API_KEY}>
+    <Map3DConsumer />
+  </APIProvider>
+);
+```
+
+## Related
+
+- [`Map3D` Component](/api/components/map-3d) - The 3D map component
+- [`useMap`](/api/hooks/use-map) - Hook for 2D maps
+- [Google Maps 3D Reference](https://developers.google.com/maps/documentation/javascript/reference/3d-map)
+
+## Source
+
+[`src/hooks/use-map-3d.ts`](https://github.com/visgl/react-google-maps/blob/main/src/hooks/use-map-3d.ts)

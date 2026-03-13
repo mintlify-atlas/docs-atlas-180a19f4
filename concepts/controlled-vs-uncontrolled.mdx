@@ -1,0 +1,399 @@
+---
+title: Controlled vs Uncontrolled Components
+description: Understanding controlled and uncontrolled patterns for React Google Maps components
+---
+
+React Google Maps components support both controlled and uncontrolled patterns, similar to form inputs in React. Understanding when to use each approach is key to building efficient map applications.
+
+## Overview
+
+The distinction between controlled and uncontrolled components determines who manages the component's state:
+
+- **Uncontrolled**: The component manages its own internal state
+- **Controlled**: Your React code manages the state
+
+<Info>
+For most applications, **uncontrolled mode is recommended** as it's simpler and more performant.
+</Info>
+
+## Uncontrolled Components
+
+In uncontrolled mode, you set initial values using `default*` props and let the component manage its own state.
+
+### Uncontrolled Map Example
+
+```tsx
+import {Map} from '@vis.gl/react-google-maps';
+
+function UncontrolledMap() {
+  return (
+    <Map
+      defaultCenter={{lat: 40.7128, lng: -74.0060}}
+      defaultZoom={12}
+      defaultHeading={0}
+      defaultTilt={0}
+    />
+  );
+}
+```
+
+**How it works:**
+- The map initializes with the provided default values
+- When users pan or zoom, the map updates its own internal state
+- No re-renders of your React component
+- Better performance for interactive maps
+
+### When to Use Uncontrolled
+
+<Tabs>
+  <Tab title="User Exploration">
+    When users need to freely explore the map:
+
+    ```tsx
+    <Map
+      defaultCenter={{lat: 40.7128, lng: -74.0060}}
+      defaultZoom={12}
+      gestureHandling="greedy"
+    />
+    ```
+  </Tab>
+  
+  <Tab title="Simple Displays">
+    For static or simple map displays:
+
+    ```tsx
+    <Map
+      defaultCenter={{lat: 40.7128, lng: -74.0060}}
+      defaultZoom={15}
+      disableDefaultUI={true}
+    >
+      <AdvancedMarker position={{lat: 40.7128, lng: -74.0060}} />
+    </Map>
+    ```
+  </Tab>
+  
+  <Tab title="Performance Critical">
+    When rendering many components:
+
+    ```tsx
+    <Map
+      defaultCenter={center}
+      defaultZoom={zoom}
+    >
+      {markers.map(marker => (
+        <AdvancedMarker key={marker.id} position={marker.position} />
+      ))}
+    </Map>
+    ```
+  </Tab>
+</Tabs>
+
+### Setting Initial Bounds
+
+Use `defaultBounds` to fit a specific region:
+
+```tsx
+<Map
+  defaultBounds={{
+    north: 40.8,
+    south: 40.6,
+    east: -73.9,
+    west: -74.1,
+    padding: 50
+  }}
+/>
+```
+
+## Controlled Components
+
+In controlled mode, you manage the state and synchronize it with the map using event handlers.
+
+### Controlled Map Example
+
+```tsx
+import {useState, useCallback} from 'react';
+import {Map, MapCameraChangedEvent} from '@vis.gl/react-google-maps';
+
+function ControlledMap() {
+  const [cameraProps, setCameraProps] = useState({
+    center: {lat: 40.7128, lng: -74.0060},
+    zoom: 12,
+    heading: 0,
+    tilt: 0
+  });
+
+  const handleCameraChange = useCallback((ev: MapCameraChangedEvent) => {
+    setCameraProps(ev.detail);
+  }, []);
+
+  return (
+    <Map
+      {...cameraProps}
+      onCameraChanged={handleCameraChange}
+    />
+  );
+}
+```
+
+**How it works:**
+1. User interacts with the map (pan, zoom, etc.)
+2. Map fires `onCameraChanged` event with new camera values
+3. Your handler updates React state
+4. Map re-renders with new prop values
+5. Cycle repeats on next interaction
+
+### When to Use Controlled
+
+<Tabs>
+  <Tab title="Sync with UI">
+    When you need to update external UI based on camera position:
+
+    ```tsx
+    function MapWithInfo() {
+      const [camera, setCamera] = useState({
+        center: {lat: 40.7128, lng: -74.0060},
+        zoom: 12
+      });
+
+      return (
+        <>
+          <div className="info">
+            Latitude: {camera.center.lat.toFixed(4)}<br />
+            Longitude: {camera.center.lng.toFixed(4)}<br />
+            Zoom: {camera.zoom}
+          </div>
+          <Map
+            {...camera}
+            onCameraChanged={(e) => setCamera(e.detail)}
+          />
+        </>
+      );
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Programmatic Control">
+    When you need to control the map from external inputs:
+
+    ```tsx
+    function SearchableMap() {
+      const [center, setCenter] = useState({lat: 40.7128, lng: -74.0060});
+      const [zoom, setZoom] = useState(12);
+
+      const handleSearch = (location) => {
+        setCenter(location);
+        setZoom(15);
+      };
+
+      return (
+        <>
+          <SearchBox onSelect={handleSearch} />
+          <Map
+            center={center}
+            zoom={zoom}
+            onCameraChanged={(e) => {
+              setCenter(e.detail.center);
+              setZoom(e.detail.zoom);
+            }}
+          />
+        </>
+      );
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Validate Changes">
+    When you need to restrict or validate camera changes:
+
+    ```tsx
+    function RestrictedMap() {
+      const [camera, setCamera] = useState({
+        center: {lat: 40.7128, lng: -74.0060},
+        zoom: 12
+      });
+
+      const handleCameraChange = (ev: MapCameraChangedEvent) => {
+        const {center, zoom} = ev.detail;
+        
+        // Restrict zoom range
+        const clampedZoom = Math.max(10, Math.min(zoom, 16));
+        
+        setCamera({
+          center,
+          zoom: clampedZoom
+        });
+      };
+
+      return (
+        <Map
+          {...camera}
+          onCameraChanged={handleCameraChange}
+        />
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Mixed Mode
+
+You can mix controlled and uncontrolled props:
+
+```tsx
+function MixedMap() {
+  const [zoom, setZoom] = useState(12);
+
+  return (
+    <Map
+      // Controlled zoom
+      zoom={zoom}
+      onZoomChanged={(e) => setZoom(e.detail.zoom)}
+      // Uncontrolled center
+      defaultCenter={{lat: 40.7128, lng: -74.0060}}
+    />
+  );
+}
+```
+
+<Note>
+When both `center` and `defaultCenter` are provided, the controlled `center` prop takes precedence.
+</Note>
+
+## Externally Controlled Mode
+
+For complete external control (e.g., with deck.gl), use the `controlled` prop:
+
+```tsx
+<Map
+  center={camera.center}
+  zoom={camera.zoom}
+  heading={camera.heading}
+  tilt={camera.tilt}
+  controlled={true}
+  onCameraChanged={handleCameraChange}
+/>
+```
+
+**Effects:**
+- Disables all user gesture controls
+- Disables keyboard shortcuts
+- Map only moves via prop changes
+- Used for synchronizing with external 3D renderers
+
+## Performance Comparison
+
+<Tabs>
+  <Tab title="Uncontrolled (Faster)">
+    ```tsx
+    // No React re-renders during map interaction
+    // Direct map manipulation
+    // Ideal for smooth panning/zooming
+    
+    <Map
+      defaultCenter={{lat: 40.7128, lng: -74.0060}}
+      defaultZoom={12}
+    >
+      {/* 1000s of markers */}
+    </Map>
+    ```
+  </Tab>
+  
+  <Tab title="Controlled (Slower)">
+    ```tsx
+    // React re-renders on every camera change
+    // State updates on pan/zoom
+    // May cause performance issues with many children
+    
+    <Map
+      center={center}
+      zoom={zoom}
+      onCameraChanged={handleChange}
+    >
+      {/* 1000s of markers - will re-render frequently */}
+    </Map>
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+<Warning>
+**Avoid** controlled mode unless you specifically need it. The performance impact can be significant, especially with:
+- Many child components (markers, polygons, etc.)
+- Frequent user interactions
+- Complex render logic
+</Warning>
+
+<Info>
+**Use uncontrolled mode** for most scenarios:
+- Simple map displays
+- User-driven exploration
+- Performance-critical applications
+</Info>
+
+### Listening Without Controlling
+
+You can listen to camera changes without controlling the map:
+
+```tsx
+function MonitoredMap() {
+  const handleCameraChange = (event) => {
+    // Log or process changes without updating state
+    console.log('Camera changed:', event.detail);
+    analytics.track('map_moved', event.detail);
+  };
+
+  return (
+    <Map
+      defaultCenter={{lat: 40.7128, lng: -74.0060}}
+      defaultZoom={12}
+      onCameraChanged={handleCameraChange}
+    />
+  );
+}
+```
+
+## Markers and Other Components
+
+The controlled/uncontrolled pattern also applies to other components:
+
+```tsx
+// Uncontrolled marker (recommended)
+<Marker
+  position={{lat: 40.7128, lng: -74.0060}}
+  draggable={true}
+  onDragEnd={(e) => console.log('New position:', e.detail.latLng)}
+/>
+
+// Controlled draggable marker
+function ControlledMarker() {
+  const [position, setPosition] = useState({lat: 40.7128, lng: -74.0060});
+
+  return (
+    <Marker
+      position={position}
+      draggable={true}
+      onDrag={(e) => setPosition(e.detail.latLng)}
+    />
+  );
+}
+```
+
+## Decision Tree
+
+Use this to decide which mode to use:
+
+```
+Do you need to react to camera changes in your UI?
+├─ No → Use UNCONTROLLED (default* props)
+└─ Yes
+   ├─ Just logging/analytics → Use UNCONTROLLED + event listener
+   └─ Update UI or control map → Use CONTROLLED (regular props + handlers)
+```
+
+## Next Steps
+
+- Learn about [APIProvider](/concepts/api-provider)
+- Understand [Map components](/concepts/maps)
+- Explore [Markers](/concepts/markers)
+- See the [Map API reference](/api/components/map)

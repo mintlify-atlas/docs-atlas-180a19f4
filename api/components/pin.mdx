@@ -1,0 +1,199 @@
+---
+title: Pin
+description: Component to customize the appearance of markers with a styled pin
+---
+
+# Pin
+
+The `Pin` component provides a styled marker appearance for both [`AdvancedMarker`](/api/components/advanced-marker) and [`Marker3D`](/api/components/marker-3d) components. It creates a pin-shaped marker with customizable colors and optional glyph content.
+
+## Import
+
+```tsx
+import {Pin} from '@vis.gl/react-google-maps';
+```
+
+## Usage
+
+### With AdvancedMarker (2D)
+
+```tsx
+import {AdvancedMarker, Pin} from '@vis.gl/react-google-maps';
+
+<AdvancedMarker position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#FF0000" glyphColor="#FFFFFF" borderColor="#000000" />
+</AdvancedMarker>
+```
+
+### With Marker3D (3D)
+
+```tsx
+import {Marker3D, Pin} from '@vis.gl/react-google-maps';
+
+<Marker3D position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#0000FF" glyphColor="#FFF" />
+</Marker3D>
+```
+
+### With Custom Glyph Content
+
+```tsx
+<AdvancedMarker position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#22CC88" glyphColor="#FFFFFF">
+    <span style={{fontSize: 20}}>★</span>
+  </Pin>
+</AdvancedMarker>
+```
+
+## Props
+
+The `Pin` component extends [`google.maps.marker.PinElementOptions`](https://developers.google.com/maps/documentation/javascript/reference/advanced-markers#PinElementOptions).
+
+<ParamField path="background" type="string">
+  The background color of the pin. Accepts any valid CSS color value.
+  
+  ```tsx
+  <Pin background="#FF0000" />
+  <Pin background="rgb(255, 0, 0)" />
+  <Pin background="red" />
+  ```
+</ParamField>
+
+<ParamField path="borderColor" type="string">
+  The color of the pin's border. Accepts any valid CSS color value.
+  
+  ```tsx
+  <Pin background="#FF0000" borderColor="#000000" />
+  ```
+</ParamField>
+
+<ParamField path="glyphColor" type="string">
+  The color of the glyph (icon or text) inside the pin. Accepts any valid CSS color value.
+  
+  ```tsx
+  <Pin background="#FF0000" glyphColor="#FFFFFF" />
+  ```
+</ParamField>
+
+<ParamField path="scale" type="number">
+  The scale of the pin. A value of 1 is the default size, 2 is twice as large, 0.5 is half as large.
+  
+  ```tsx
+  <Pin scale={1.5} background="#FF0000" />
+  ```
+</ParamField>
+
+<ParamField path="glyph" type="string | Element | URL">
+  The glyph to display inside the pin. Can be a single character string, an Element, or a URL.
+  
+  **Note:** When children are provided, the `glyph` prop is ignored and children are used instead.
+  
+  ```tsx
+  {/* String glyph */}
+  <Pin glyph="A" background="#FF0000" />
+  
+  {/* URL glyph */}
+  <Pin glyph={new URL('/icon.png', window.location.origin)} background="#FF0000" />
+  ```
+</ParamField>
+
+## Children
+
+You can provide custom React content as children to display inside the pin's glyph area:
+
+```tsx
+<AdvancedMarker position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#4285F4" glyphColor="#FFFFFF">
+    <div style={{fontSize: 24, fontWeight: 'bold'}}>SF</div>
+  </Pin>
+</AdvancedMarker>
+```
+
+<Warning>
+  When both `glyph` prop and children are provided, the children take priority and the `glyph` prop is ignored.
+</Warning>
+
+<Note>
+  Passing multiple children may lead to unexpected results. It's recommended to wrap multiple elements in a single container.
+</Note>
+
+## Examples
+
+### Basic Colored Pin
+
+```tsx
+<AdvancedMarker position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#FF5733" borderColor="#C70039" glyphColor="#FFF" />
+</AdvancedMarker>
+```
+
+### Pin with Text Glyph
+
+```tsx
+<AdvancedMarker position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#4285F4" glyphColor="#FFFFFF">
+    <span style={{fontWeight: 'bold'}}>1</span>
+  </Pin>
+</AdvancedMarker>
+```
+
+### Pin with Icon Glyph
+
+```tsx
+<AdvancedMarker position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#34A853" glyphColor="#FFFFFF">
+    <svg width="20" height="20" viewBox="0 0 20 20">
+      <path d="M10 2l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6z" fill="currentColor" />
+    </svg>
+  </Pin>
+</AdvancedMarker>
+```
+
+### Large Pin
+
+```tsx
+<AdvancedMarker position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin scale={2.0} background="#FBBC04" glyphColor="#000" />
+</AdvancedMarker>
+```
+
+### Pin on 3D Map
+
+```tsx
+import {Marker3D, Pin} from '@vis.gl/react-google-maps';
+
+<Marker3D position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#EA4335" glyphColor="#FFFFFF">
+    <span>📍</span>
+  </Pin>
+</Marker3D>
+```
+
+## Differences Between 2D and 3D
+
+- **With AdvancedMarker (2D)**: The Pin is rendered as part of the marker's HTML content
+- **With Marker3D (3D)**: The Pin is rendered as a native PinElement that Marker3D can handle directly
+
+Both implementations provide the same visual appearance and API, but the rendering approach differs internally.
+
+## Context Requirements
+
+<Warning>
+  The `Pin` component must be used inside either an `AdvancedMarker` or `Marker3D` component. Using it elsewhere will result in an error.
+</Warning>
+
+```tsx
+// ✅ Correct
+<AdvancedMarker position={pos}>
+  <Pin background="#FF0000" />
+</AdvancedMarker>
+
+// ❌ Incorrect
+<Map>
+  <Pin background="#FF0000" />
+</Map>
+```
+
+## Source
+
+[View source on GitHub](https://github.com/visgl/react-google-maps/blob/main/src/components/pin.tsx)

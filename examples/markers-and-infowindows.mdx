@@ -1,0 +1,276 @@
+---
+title: 'Markers and InfoWindows'
+description: 'Display markers and interactive info windows on your map'
+---
+
+This example demonstrates how to use markers and info windows to display interactive points of interest on your map.
+
+## Live Demo
+
+<Card title="Try it on CodeSandbox" icon="code" href="https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/markers-and-infowindows">
+  Open this example in CodeSandbox to experiment with the code
+</Card>
+
+## Complete Example
+
+This example shows several marker types and info window patterns:
+
+```tsx app.tsx
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {
+  AdvancedMarker,
+  APIProvider,
+  InfoWindow,
+  Map,
+  Marker,
+  Pin
+} from '@vis.gl/react-google-maps';
+
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY as string;
+
+const App = () => {
+  return (
+    <APIProvider apiKey={API_KEY} libraries={['marker']}>
+      <Map
+        mapId={'bf51a910020fa25a'}
+        defaultZoom={3}
+        defaultCenter={{lat: 12, lng: 0}}
+        gestureHandling={'greedy'}
+        disableDefaultUI>
+        
+        {/* Simple clickable marker */}
+        <Marker
+          position={{lat: 10, lng: 10}}
+          clickable={true}
+          onClick={() => alert('marker was clicked!')}
+          title={'clickable google.maps.Marker'}
+        />
+
+        {/* Advanced marker with customized pin */}
+        <AdvancedMarker
+          position={{lat: 20, lng: 10}}
+          title={'AdvancedMarker with customized pin.'}>
+          <Pin
+            background={'#22ccff'}
+            borderColor={'#1e89a1'}
+            glyphColor={'#0f677a'}
+          />
+        </AdvancedMarker>
+
+        {/* Advanced marker with emoji glyph */}
+        <AdvancedMarker
+          position={{lat: 15, lng: 20}}
+          title={'AdvancedMarker with emoji glyph.'}>
+          <Pin background={'#22ccff'} borderColor={'#1e89a1'} scale={1.4}>
+            👀
+          </Pin>
+        </AdvancedMarker>
+
+        {/* Advanced marker with custom HTML */}
+        <AdvancedMarker
+          position={{lat: 30, lng: 10}}
+          title={'AdvancedMarker with custom html content.'}>
+          <div
+            style={{
+              width: 16,
+              height: 16,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              background: '#1dbe80',
+              border: '2px solid #0e6443',
+              borderRadius: '50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+          />
+        </AdvancedMarker>
+
+        {/* Simple positioned infowindow */}
+        <InfoWindow position={{lat: 40, lng: 0}} maxWidth={200}>
+          <p>
+            This is the content for an infowindow with <em>HTML</em> elements.
+          </p>
+        </InfoWindow>
+
+        {/* Stateful marker with infowindow */}
+        <MarkerWithInfowindow />
+      </Map>
+    </APIProvider>
+  );
+};
+
+export default App;
+```
+
+## Marker with InfoWindow Pattern
+
+The most common pattern is a marker that opens an info window when clicked:
+
+```tsx marker-with-infowindow.tsx
+import React, {useState} from 'react';
+import {
+  AdvancedMarker,
+  InfoWindow,
+  useAdvancedMarkerRef
+} from '@vis.gl/react-google-maps';
+
+export const MarkerWithInfowindow = () => {
+  const [infowindowOpen, setInfowindowOpen] = useState(true);
+  const [markerRef, marker] = useAdvancedMarkerRef();
+
+  return (
+    <>
+      <AdvancedMarker
+        ref={markerRef}
+        onClick={() => setInfowindowOpen(true)}
+        position={{lat: 28, lng: -82}}
+        title={'AdvancedMarker that opens an Infowindow when clicked.'}
+      />
+      {infowindowOpen && (
+        <InfoWindow
+          anchor={marker}
+          maxWidth={200}
+          onCloseClick={() => setInfowindowOpen(false)}>
+          This is an example for the <code>&lt;AdvancedMarker /&gt;</code>
+          combined with an InfoWindow.
+        </InfoWindow>
+      )}
+    </>
+  );
+};
+```
+
+## Key Concepts
+
+### Marker Types
+
+<Tabs>
+  <Tab title="Marker">
+    The legacy `Marker` component uses the standard Google Maps marker:
+    
+    ```tsx
+    <Marker
+      position={{lat: 10, lng: 10}}
+      onClick={() => console.log('clicked')}
+      title="Legacy Marker"
+    />
+    ```
+    
+    Use for compatibility with older Google Maps features.
+  </Tab>
+  
+  <Tab title="AdvancedMarker">
+    The `AdvancedMarker` component provides modern markers with HTML content:
+    
+    ```tsx
+    <AdvancedMarker
+      position={{lat: 20, lng: 10}}
+      title="Advanced Marker">
+      {/* Custom content */}
+    </AdvancedMarker>
+    ```
+    
+    **Requires:** `mapId` prop on `<Map>` and `libraries={['marker']}` on `<APIProvider>`
+  </Tab>
+</Tabs>
+
+### Pin Customization
+
+The `Pin` component allows customizing the default marker pin:
+
+```tsx
+<Pin
+  background="#22ccff"      // Pin background color
+  borderColor="#1e89a1"     // Pin border color
+  glyphColor="#0f677a"      // Glyph/icon color
+  scale={1.4}               // Size scale
+>
+  👀  {/* Custom glyph content */}
+</Pin>
+```
+
+### InfoWindow Anchoring
+
+<Tabs>
+  <Tab title="Position">
+    Anchor to a geographic position:
+    
+    ```tsx
+    <InfoWindow position={{lat: 40, lng: 0}} maxWidth={200}>
+      <p>Content here</p>
+    </InfoWindow>
+    ```
+  </Tab>
+  
+  <Tab title="Marker">
+    Anchor to a marker element:
+    
+    ```tsx
+    const [markerRef, marker] = useAdvancedMarkerRef();
+    
+    <AdvancedMarker ref={markerRef} position={{lat: 28, lng: -82}} />
+    <InfoWindow anchor={marker} maxWidth={200}>
+      <p>Content here</p>
+    </InfoWindow>
+    ```
+  </Tab>
+</Tabs>
+
+## Handling Clicks
+
+### Marker Clicks
+
+```tsx
+<AdvancedMarker
+  position={{lat: 20, lng: 10}}
+  onClick={(e) => {
+    console.log('Marker clicked:', e);
+  }}
+/>
+```
+
+### InfoWindow Close
+
+```tsx
+<InfoWindow
+  anchor={marker}
+  onCloseClick={() => setInfowindowOpen(false)}
+>
+  Content
+</InfoWindow>
+```
+
+## Important Notes
+
+<Note>
+**AdvancedMarker Requirements:**
+- Set `mapId` prop on the `<Map>` component
+- Include `libraries={['marker']}` on `<APIProvider>`
+- Requires a Map ID from your Google Cloud Console
+</Note>
+
+<Note>
+**useAdvancedMarkerRef Hook:**
+Use this hook to get a reference to the underlying `AdvancedMarkerElement` for anchoring InfoWindows:
+
+```tsx
+const [markerRef, marker] = useAdvancedMarkerRef();
+```
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Custom Markers" icon="map-pin" href="/examples/custom-markers">
+    Create fully custom marker designs
+  </Card>
+  <Card title="AdvancedMarker API" icon="book" href="/api/components/advanced-marker">
+    Full API reference for AdvancedMarker
+  </Card>
+</CardGroup>
+
+## Resources
+
+- [View full source on GitHub](https://github.com/visgl/react-google-maps/tree/main/examples/markers-and-infowindows)
+- [Try on CodeSandbox](https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/markers-and-infowindows)

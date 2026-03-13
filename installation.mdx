@@ -1,0 +1,124 @@
+---
+title: Installation
+description: Install React Google Maps and configure your environment
+---
+
+## Package Installation
+
+Install the library from npm using your preferred package manager:
+
+<CodeGroup>
+
+```bash npm
+npm install @vis.gl/react-google-maps
+```
+
+```bash yarn
+yarn add @vis.gl/react-google-maps
+```
+
+```bash pnpm
+pnpm add @vis.gl/react-google-maps
+```
+
+</CodeGroup>
+
+<Note>
+  PowerShell users: Since `@` has a special meaning in PowerShell, the package name must be quoted:
+  
+  ```powershell
+  npm install "@vis.gl/react-google-maps"
+  ```
+</Note>
+
+## Peer Dependencies
+
+This library requires React 16.8.0 or higher (the version that introduced hooks). Make sure you have React and ReactDOM installed:
+
+```json package.json
+{
+  "dependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  }
+}
+```
+
+The library supports React versions up to and including React 19.
+
+<Info>
+  The library also works with React 19 release candidates: `^19.0.0-rc`
+</Info>
+
+## TypeScript Support
+
+This library comes with **full TypeScript support out of the box**. No additional type definitions or `@types` packages are required.
+
+The package includes:
+
+- Complete type definitions for all components and hooks
+- Type definitions for Google Maps JavaScript API via `@types/google.maps`
+- Full IntelliSense support in TypeScript-enabled editors
+
+```tsx
+import {APIProvider, Map, AdvancedMarker} from '@vis.gl/react-google-maps';
+// All types are automatically available
+```
+
+## Google Maps API Key
+
+To use this library, you need a Google Maps JavaScript API key.
+
+<Steps>
+  <Step title="Get an API Key">
+    Follow the [Google Maps Platform documentation](https://developers.google.com/maps/documentation/javascript/get-api-key) to create an API key.
+  </Step>
+
+  <Step title="Enable Required APIs">
+    Make sure the **Maps JavaScript API** is enabled in your Google Cloud Console project.
+    
+    For advanced features, you may also need to enable:
+    - Places API (for autocomplete and place details)
+    - Directions API (for routing)
+    - Geocoding API (for address lookups)
+  </Step>
+
+  <Step title="Secure Your API Key">
+    Configure API key restrictions in the Google Cloud Console:
+    - Set HTTP referrer restrictions for web applications
+    - Limit API key to only the APIs you need
+  </Step>
+</Steps>
+
+<Warning>
+  Never commit your API key to version control. Use environment variables or a configuration management system to store your key securely.
+</Warning>
+
+## Environment Variables
+
+For development, store your API key in an environment variable:
+
+```text .env
+GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+Then access it in your application:
+
+```tsx
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+
+<APIProvider apiKey={API_KEY}>
+  {/* your map components */}
+</APIProvider>
+```
+
+<Tip>
+  Different frameworks handle environment variables differently:
+  - **Vite**: Use `import.meta.env.VITE_GOOGLE_MAPS_API_KEY`
+  - **Next.js**: Use `process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`
+  - **Create React App**: Use `process.env.REACT_APP_GOOGLE_MAPS_API_KEY`
+</Tip>
+
+## Next Steps
+
+Once you've installed the library and obtained your API key, you're ready to create your first map! Continue to the [Quickstart](/quickstart) guide to build a basic map application.

@@ -1,0 +1,143 @@
+---
+title: 'Basic Map'
+description: 'Create a simple Google Map with essential configuration'
+---
+
+This example demonstrates the simplest possible setup for rendering a Google Map with @vis.gl/react-google-maps.
+
+## Live Demo
+
+<Card title="Try it on CodeSandbox" icon="code" href="https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/basic-map">
+  Open this example in CodeSandbox to experiment with the code
+</Card>
+
+## Complete Example
+
+```tsx app.tsx
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {APIProvider, Map} from '@vis.gl/react-google-maps';
+
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY as string;
+
+const App = () => (
+  <APIProvider apiKey={API_KEY}>
+    <Map
+      defaultZoom={3}
+      defaultCenter={{lat: 22.54992, lng: 0}}
+      gestureHandling={'greedy'}
+      disableDefaultUI={true}
+    />
+  </APIProvider>
+);
+
+export default App;
+
+export function renderToDom(container: HTMLElement) {
+  const root = createRoot(container);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}
+```
+
+## Key Components
+
+### APIProvider
+
+The `APIProvider` component wraps your application and loads the Google Maps JavaScript API:
+
+```tsx
+<APIProvider apiKey={API_KEY}>
+  {/* Your map components */}
+</APIProvider>
+```
+
+**Required props:**
+- `apiKey` - Your Google Maps API key
+
+### Map
+
+The `Map` component renders the actual map:
+
+```tsx
+<Map
+  defaultZoom={3}
+  defaultCenter={{lat: 22.54992, lng: 0}}
+  gestureHandling={'greedy'}
+  disableDefaultUI={true}
+/>
+```
+
+## Essential Props
+
+### Map Position
+
+<ParamField path="defaultCenter" type="{lat: number, lng: number}">
+  Initial center position of the map
+</ParamField>
+
+<ParamField path="defaultZoom" type="number">
+  Initial zoom level (0-22, where higher values show more detail)
+</ParamField>
+
+### Map Interaction
+
+<ParamField path="gestureHandling" type="'greedy' | 'cooperative' | 'none' | 'auto'">
+  Controls how the map responds to gestures:
+  - `greedy` - Map always pans/zooms on touch/scroll
+  - `cooperative` - Requires ctrl+scroll to zoom
+  - `none` - Disables all gestures
+  - `auto` - Default Google Maps behavior
+</ParamField>
+
+<ParamField path="disableDefaultUI" type="boolean">
+  Hides default Google Maps controls (zoom, street view, etc.)
+</ParamField>
+
+## Controlled vs Uncontrolled
+
+The example above uses **uncontrolled** mode with `defaultZoom` and `defaultCenter`. The map manages its own state.
+
+For **controlled** mode, use `zoom`, `center`, and event handlers:
+
+```tsx
+const [zoom, setZoom] = useState(3);
+const [center, setCenter] = useState({lat: 22.54992, lng: 0});
+
+<Map
+  zoom={zoom}
+  center={center}
+  onZoomChanged={(ev) => setZoom(ev.detail.zoom)}
+  onCenterChanged={(ev) => setCenter(ev.detail.center)}
+/>
+```
+
+## Styling
+
+The map automatically fills its container. Set dimensions on the parent element:
+
+```css
+.map-container {
+  width: 100vw;
+  height: 100vh;
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Markers & InfoWindows" icon="location-dot" href="/examples/markers-and-infowindows">
+    Add interactive markers to your map
+  </Card>
+  <Card title="Map Component API" icon="book" href="/api/components/map">
+    Explore all Map component props
+  </Card>
+</CardGroup>
+
+## Resources
+
+- [View full source on GitHub](https://github.com/visgl/react-google-maps/tree/main/examples/basic-map)
+- [Try on CodeSandbox](https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/basic-map)

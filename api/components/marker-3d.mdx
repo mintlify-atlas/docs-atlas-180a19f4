@@ -1,0 +1,230 @@
+---
+title: Marker3D
+description: Component to display a 3D marker on a Map3D
+---
+
+# Marker3D
+
+The `Marker3D` component displays a marker on a 3D map. It must be placed inside a [`Map3D`](/api/components/map-3d) component.
+
+## Import
+
+```tsx
+import {Marker3D, AltitudeMode, CollisionBehavior} from '@vis.gl/react-google-maps';
+```
+
+## Usage
+
+### Basic Marker
+
+```tsx
+import {APIProvider, Map3D, Marker3D, MapMode} from '@vis.gl/react-google-maps';
+
+const App = () => (
+  <APIProvider apiKey={process.env.GOOGLE_MAPS_API_KEY}>
+    <Map3D mode={MapMode.HYBRID} defaultCenter={{lat: 37.7749, lng: -122.4194}}>
+      <Marker3D position={{lat: 37.7749, lng: -122.4194}} label="SF" />
+    </Map3D>
+  </APIProvider>
+);
+```
+
+### Interactive Marker
+
+```tsx
+<Marker3D
+  position={{lat: 37.7749, lng: -122.4194, altitude: 100}}
+  onClick={() => console.log('Marker clicked')}
+  title="Click me"
+  label="SF"
+/>
+```
+
+### Custom Marker with Image
+
+```tsx
+<Marker3D position={{lat: 37.7749, lng: -122.4194}}>
+  <img src="/icon.png" width={32} height={32} alt="Custom icon" />
+</Marker3D>
+```
+
+### With Pin Component
+
+```tsx
+import {Marker3D, Pin} from '@vis.gl/react-google-maps';
+
+<Marker3D position={{lat: 37.7749, lng: -122.4194}}>
+  <Pin background="#FF0000" glyphColor="#FFF" />
+</Marker3D>
+```
+
+## Props
+
+The `Marker3D` component extends [`google.maps.maps3d.Marker3DElementOptions`](https://developers.google.com/maps/documentation/javascript/reference/3d-map#Marker3DElementOptions).
+
+### Required
+
+<ParamField path="position" type="google.maps.LatLngAltitudeLiteral" required>
+  The position where the marker should be displayed. Can include altitude.
+  
+  ```tsx
+  <Marker3D position={{lat: 37.7749, lng: -122.4194, altitude: 100}} />
+  ```
+</ParamField>
+
+### Optional
+
+<ParamField path="altitudeMode" type="AltitudeMode">
+  How the altitude component is interpreted. Import `AltitudeMode` from `@vis.gl/react-google-maps`.
+  
+  - `AltitudeMode.ABSOLUTE`: Relative to sea level
+  - `AltitudeMode.CLAMP_TO_GROUND`: Placed on the ground (default)
+  - `AltitudeMode.RELATIVE_TO_GROUND`: Relative to ground surface
+  - `AltitudeMode.RELATIVE_TO_MESH`: Relative to buildings/water
+  
+  ```tsx
+  import {AltitudeMode} from '@vis.gl/react-google-maps';
+  
+  <Marker3D 
+    position={{lat: 37.7749, lng: -122.4194, altitude: 100}}
+    altitudeMode={AltitudeMode.RELATIVE_TO_GROUND}
+  />
+  ```
+  
+  Default: `AltitudeMode.CLAMP_TO_GROUND`
+</ParamField>
+
+<ParamField path="label" type="string">
+  Text label displayed on the marker.
+  
+  ```tsx
+  <Marker3D position={pos} label="SF" />
+  ```
+</ParamField>
+
+<ParamField path="zIndex" type="number">
+  The z-index for display order. Markers with higher values appear in front.
+</ParamField>
+
+<ParamField path="collisionBehavior" type="CollisionBehavior">
+  How the marker behaves when it collides with other markers or labels.
+  
+  - `CollisionBehavior.REQUIRED`: Always shown (default)
+  - `CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL`: Shown and hides optional markers
+  - `CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY`: May be hidden
+  
+  ```tsx
+  import {CollisionBehavior} from '@vis.gl/react-google-maps';
+  
+  <Marker3D 
+    position={pos}
+    collisionBehavior={CollisionBehavior.REQUIRED}
+  />
+  ```
+</ParamField>
+
+<ParamField path="drawsWhenOccluded" type="boolean">
+  Whether the marker is drawn when occluded by 3D content.
+  
+  Default: `false`
+</ParamField>
+
+<ParamField path="extruded" type="boolean">
+  Whether the marker appears extruded (3D effect).
+  
+  Default: `false`
+</ParamField>
+
+<ParamField path="sizePreserved" type="boolean">
+  Whether the marker maintains its size regardless of distance.
+  
+  Default: `false`
+</ParamField>
+
+<ParamField path="title" type="string">
+  Rollover text displayed when hovering. Only available when `onClick` is provided.
+</ParamField>
+
+## Events
+
+<ParamField path="onClick" type="(event: Event) => void">
+  Fired when the marker is clicked. Providing this handler automatically uses `Marker3DInteractiveElement` instead of `Marker3DElement`.
+  
+  ```tsx
+  <Marker3D 
+    position={pos}
+    onClick={(e) => console.log('Marker clicked')}
+    title="Click me"
+  />
+  ```
+</ParamField>
+
+## Children
+
+The `Marker3D` component accepts children to customize the marker appearance:
+
+### Image Elements
+
+Images are automatically wrapped in a `<template>` element as required by the API:
+
+```tsx
+<Marker3D position={pos}>
+  <img src="/custom-icon.png" width={32} height={32} alt="Custom" />
+</Marker3D>
+```
+
+### SVG Elements
+
+SVGs are also automatically wrapped:
+
+```tsx
+<Marker3D position={pos}>
+  <svg width="32" height="32">
+    <circle cx="16" cy="16" r="14" fill="red" />
+  </svg>
+</Marker3D>
+```
+
+### Pin Component
+
+Use the [`Pin`](/api/components/pin) component for a styled marker:
+
+```tsx
+<Marker3D position={pos}>
+  <Pin background="#FF0000" borderColor="#000" glyphColor="#FFF">
+    <span>SF</span>
+  </Pin>
+</Marker3D>
+```
+
+## Interactive vs Non-Interactive
+
+The component automatically chooses the appropriate element type:
+
+- **Without `onClick`**: Uses `Marker3DElement` (non-interactive)
+- **With `onClick`**: Uses `Marker3DInteractiveElement` (supports click events and `title`)
+
+## Imperative API
+
+Access the marker instance using a ref:
+
+```tsx
+import {useRef} from 'react';
+import {Marker3D} from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const markerRef = useRef<google.maps.maps3d.Marker3DElement>(null);
+  
+  const updatePosition = () => {
+    if (markerRef.current) {
+      markerRef.current.position = {lat: 37.8, lng: -122.4};
+    }
+  };
+  
+  return <Marker3D ref={markerRef} position={{lat: 37.7749, lng: -122.4194}} />;
+}
+```
+
+## Source
+
+[View source on GitHub](https://github.com/visgl/react-google-maps/blob/main/src/components/marker-3d.tsx)

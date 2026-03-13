@@ -1,0 +1,133 @@
+---
+title: "Introduction"
+description: "React components and hooks for the Google Maps JavaScript API"
+---
+
+## What is React Google Maps?
+
+React Google Maps is a TypeScript/JavaScript library that provides React components and hooks for seamlessly integrating the Google Maps JavaScript API into your React applications. Built by the vis.gl team, it offers a collection of components to create maps, markers, and info windows, along with hooks to use Google Maps services and libraries.
+
+<CardGroup cols={2}>
+  <Card title="Get Started" icon="rocket" href="/quickstart">
+    Get up and running with your first map in minutes
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/components/map">
+    Explore all components and hooks
+  </Card>
+  <Card title="View Examples" icon="image" href="/examples/overview">
+    See real-world examples and code samples
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/visgl/react-google-maps">
+    View source code and contribute
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="React Components" icon="react">
+    **Map**, **Marker**, **InfoWindow**, and more components that follow React best practices
+  </Card>
+  <Card title="Hooks API" icon="hook">
+    Use Google Maps services like **Places**, **Directions**, and **Geocoding** with React hooks
+  </Card>
+  <Card title="TypeScript Support" icon="code">
+    Full TypeScript support with comprehensive type definitions included
+  </Card>
+  <Card title="Controlled & Uncontrolled" icon="sliders">
+    Components work in both controlled and uncontrolled modes for flexibility
+  </Card>
+  <Card title="Advanced Markers" icon="location-dot">
+    Create custom markers with HTML content using the Advanced Marker API
+  </Card>
+  <Card title="3D Maps" icon="cube">
+    Support for 3D maps, markers, and photorealistic 3D tiles
+  </Card>
+  <Card title="deck.gl Integration" icon="layer-group">
+    Seamless integration with deck.gl for advanced data visualization
+  </Card>
+  <Card title="SSR Compatible" icon="server">
+    Works with Next.js, Remix, and other server-side rendering frameworks
+  </Card>
+</CardGroup>
+
+## Quick Example
+
+Here's a minimal example to render a map with a marker:
+
+```tsx
+import {APIProvider, Map, AdvancedMarker} from '@vis.gl/react-google-maps';
+
+function App() {
+  const position = {lat: 53.54992, lng: 10.00678};
+
+  return (
+    <APIProvider apiKey={'YOUR_API_KEY'}>
+      <Map 
+        defaultCenter={position} 
+        defaultZoom={10}
+        mapId="DEMO_MAP_ID"
+      >
+        <AdvancedMarker position={position} />
+      </Map>
+    </APIProvider>
+  );
+}
+```
+
+## Design Philosophy
+
+This library provides a **reactive wrapper** for the Google Maps JavaScript API while maintaining the map's ability to manage its own state. The components can work in:
+
+- **Uncontrolled mode** - Map state is managed internally (default)
+- **Controlled mode** - Full control over map state from React
+- **Externally controlled mode** - Disable all built-in controls for external management
+
+This flexibility allows you to integrate maps seamlessly into your React application architecture, whether you need simple map displays or complex synchronized multi-map interfaces.
+
+## Getting Started
+
+<Steps>
+  <Step title="Install the package">
+    Install via npm or yarn:
+    
+    <CodeGroup>
+    ```bash npm
+    npm install @vis.gl/react-google-maps
+    ```
+    
+    ```bash yarn
+    yarn add @vis.gl/react-google-maps
+    ```
+    
+    ```bash pnpm
+    pnpm add @vis.gl/react-google-maps
+    ```
+    </CodeGroup>
+  </Step>
+  
+  <Step title="Get an API key">
+    You'll need a [Google Maps API key](https://developers.google.com/maps/documentation/javascript/get-api-key) to use this library.
+  </Step>
+  
+  <Step title="Start building">
+    Check out the [Quickstart Guide](/quickstart) to create your first map, or explore the [Examples](/examples/overview) for inspiration.
+  </Step>
+</Steps>
+
+## Community & Support
+
+<CardGroup cols={2}>
+  <Card title="GitHub Discussions" icon="comments" href="https://github.com/visgl/react-google-maps/discussions">
+    Ask questions and discuss with the community
+  </Card>
+  <Card title="Report Issues" icon="bug" href="https://github.com/visgl/react-google-maps/issues">
+    Found a bug? Let us know on GitHub
+  </Card>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/f4hvx8Rp2q">
+    Join the vis.gl Discord server
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="https://visgl.github.io/react-google-maps/docs/contributing">
+    Learn how to contribute to the project
+  </Card>
+</CardGroup>

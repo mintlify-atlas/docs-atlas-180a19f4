@@ -1,0 +1,485 @@
+---
+title: 'Marker Clustering'
+description: 'Efficiently display large numbers of markers using supercluster'
+---
+
+This example demonstrates how to implement marker clustering to efficiently render thousands of markers on your map using the Supercluster library.
+
+## Live Demo
+
+<Card title="Try it on CodeSandbox" icon="code" href="https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/custom-marker-clustering">
+  Open this example in CodeSandbox to experiment with the code
+</Card>
+
+## Complete Example
+
+```tsx app.tsx
+import React, {useCallback, useEffect, useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {APIProvider, InfoWindow, Map} from '@vis.gl/react-google-maps';
+import {ClusteredMarkers} from './components/clustered-markers';
+import {Feature, Point} from 'geojson';
+
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY as string;
+
+const App = () => {
+  const [geojson, setGeojson] = useState(null);
+  const [numClusters, setNumClusters] = useState(0);
+  const [infowindowData, setInfowindowData] = useState<{
+    anchor: google.maps.marker.AdvancedMarkerElement;
+    features: Feature<Point>[];
+  } | null>(null);
+
+  useEffect(() => {
+    // Load your GeoJSON data
+    fetch('/data/points.geojson')
+      .then(res => res.json())
+      .then(data => setGeojson(data));
+  }, []);
+
+  const handleInfoWindowClose = useCallback(
+    () => setInfowindowData(null),
+    []
+  );
+
+  return (
+    <APIProvider apiKey={API_KEY} version={'beta'}>
+      <Map
+        mapId={'b5387d230c6cf22f'}
+        defaultCenter={{lat: 20, lng: 20}}
+        defaultZoom={3}
+        gestureHandling={'greedy'}
+        disableDefaultUI
+        onClick={() => setInfowindowData(null)}>
+        
+        {geojson && (
+          <ClusteredMarkers
+            geojson={geojson}
+            setNumClusters={setNumClusters}
+            setInfowindowData={setInfowindowData}
+          />
+        )}
+
+        {infowindowData && (
+          <InfoWindow
+            onCloseClick={handleInfoWindowClose}
+            anchor={infowindowData.anchor}>
+            {/* Display info about clustered features */}
+            <div>
+              <h3>Features: {infowindowData.features.length}</h3>
+              {infowindowData.features.map(f => (
+                <p key={f.id}>{f.properties?.name}</p>
+              ))}
+            </div>
+          </InfoWindow>
+        )}
+      </Map>
+
+      <div className="control-panel">
+        <p>Clusters: {numClusters}</p>
+        <p>Features: {geojson?.features.length || 0}</p>
+      </div>
+    </APIProvider>
+  );
+};
+
+export default App;
+```
+
+## Clustered Markers Component
+
+```tsx clustered-markers.tsx
+import React, {useCallback, useEffect} from 'react';
+import Supercluster, {ClusterProperties} from 'supercluster';
+import {FeaturesClusterMarker} from './features-cluster-marker';
+import {FeatureMarker} from './feature-marker';
+import {useSupercluster} from '../hooks/use-supercluster';
+import {Feature, FeatureCollection, GeoJsonProperties, Point} from 'geojson';
+
+type ClusteredMarkersProps = {
+  geojson: FeatureCollection<Point>;
+  setNumClusters: (n: number) => void;
+  setInfowindowData: (
+    data: {
+      anchor: google.maps.marker.AdvancedMarkerElement;
+      features: Feature<Point>[];
+    } | null
+  ) => void;
+};
+
+const superclusterOptions: Supercluster.Options<
+  GeoJsonProperties,
+  ClusterProperties
+> = {
+  extent: 256,
+  radius: 80,
+  maxZoom: 12
+};
+
+export const ClusteredMarkers = ({
+  geojson,
+  setNumClusters,
+  setInfowindowData
+}: ClusteredMarkersProps) => {
+  const {clusters, getLeaves} = useSupercluster(geojson, superclusterOptions);
+
+  useEffect(() => {
+    setNumClusters(clusters.length);
+  }, [setNumClusters, clusters.length]);
+
+  const handleClusterClick = useCallback(
+    (marker: google.maps.marker.AdvancedMarkerElement, clusterId: number) => {
+      const leaves = getLeaves(clusterId);
+      setInfowindowData({anchor: marker, features: leaves});
+    },
+    [getLeaves, setInfowindowData]
+  );
+
+  const handleMarkerClick = useCallback(
+    (marker: google.maps.marker.AdvancedMarkerElement, featureId: string) => {
+      const feature = clusters.find(
+        feat => feat.id === featureId
+      ) as Feature<Point>;
+      setInfowindowData({anchor: marker, features: [feature]});
+    },
+    [clusters, setInfowindowData]
+  );
+
+  return (
+    <>
+      {clusters.map(feature => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const clusterProperties = feature.properties as ClusterProperties;
+        const isCluster: boolean = clusterProperties.cluster;
+
+        return isCluster ? (
+          <FeaturesClusterMarker
+            key={feature.id}
+            clusterId={clusterProperties.cluster_id}
+            position={{lat, lng}}
+            size={clusterProperties.point_count}
+            sizeAsText={String(clusterProperties.point_count_abbreviated)}
+            onMarkerClick={handleClusterClick}
+          />
+        ) : (
+          <FeatureMarker
+            key={feature.id}
+            featureId={feature.id as string}
+            position={{lat, lng}}
+            onMarkerClick={handleMarkerClick}
+          />
+        );
+      })}
+    </>
+  );
+};
+```
+
+## useSupercluster Hook
+
+Create a custom hook to integrate Supercluster with the map:
+
+```tsx use-supercluster.ts
+import {FeatureCollection, GeoJsonProperties, Point} from 'geojson';
+import Supercluster, {ClusterProperties} from 'supercluster';
+import {useCallback, useEffect, useMemo, useReducer} from 'react';
+import {useMapViewport} from './use-map-viewport';
+
+export function useSupercluster<T extends GeoJsonProperties>(
+  geojson: FeatureCollection<Point, T>,
+  superclusterOptions: Supercluster.Options<T, ClusterProperties>
+) {
+  // Create the clusterer instance
+  const clusterer = useMemo(() => {
+    return new Supercluster(superclusterOptions);
+  }, [superclusterOptions]);
+
+  // Track data version to trigger updates
+  const [version, dataWasUpdated] = useReducer((x: number) => x + 1, 0);
+
+  // Load data into clusterer when it changes
+  useEffect(() => {
+    clusterer.load(geojson.features);
+    dataWasUpdated();
+  }, [clusterer, geojson]);
+
+  // Get bounding box and zoom from the map
+  const {bbox, zoom} = useMapViewport({padding: 100});
+
+  // Retrieve clusters within current viewport
+  const clusters = useMemo(() => {
+    if (!clusterer || version === 0) return [];
+    return clusterer.getClusters(bbox, zoom);
+  }, [version, clusterer, bbox, zoom]);
+
+  // Expose supercluster functionality
+  const getChildren = useCallback(
+    (clusterId: number) => clusterer.getChildren(clusterId),
+    [clusterer]
+  );
+
+  const getLeaves = useCallback(
+    (clusterId: number) => clusterer.getLeaves(clusterId, Infinity),
+    [clusterer]
+  );
+
+  const getClusterExpansionZoom = useCallback(
+    (clusterId: number) => clusterer.getClusterExpansionZoom(clusterId),
+    [clusterer]
+  );
+
+  return {
+    clusters,
+    getChildren,
+    getLeaves,
+    getClusterExpansionZoom
+  };
+}
+```
+
+## Supercluster Configuration
+
+Customize clustering behavior:
+
+```tsx
+const superclusterOptions = {
+  radius: 80,        // Cluster radius in pixels
+  extent: 256,       // Tile extent (default: 256)
+  maxZoom: 12,       // Max zoom to cluster points on
+  minZoom: 0,        // Min zoom to cluster points on
+  minPoints: 2       // Minimum points to form a cluster
+};
+```
+
+### Option Details
+
+<ParamField path="radius" type="number" default="40">
+  Cluster radius in pixels. Higher values create larger clusters.
+</ParamField>
+
+<ParamField path="extent" type="number" default="256">
+  Tile extent. Affects clustering calculations.
+</ParamField>
+
+<ParamField path="maxZoom" type="number" default="16">
+  Maximum zoom level to cluster points. Beyond this zoom, individual markers are shown.
+</ParamField>
+
+<ParamField path="minZoom" type="number" default="0">
+  Minimum zoom level to cluster points.
+</ParamField>
+
+<ParamField path="minPoints" type="number" default="2">
+  Minimum number of points to form a cluster.
+</ParamField>
+
+## Cluster Marker Component
+
+Create a visual representation for clusters:
+
+```tsx features-cluster-marker.tsx
+import React from 'react';
+import {AdvancedMarker, useAdvancedMarkerRef} from '@vis.gl/react-google-maps';
+
+interface Props {
+  clusterId: number;
+  position: google.maps.LatLngLiteral;
+  size: number;
+  sizeAsText: string;
+  onMarkerClick: (
+    marker: google.maps.marker.AdvancedMarkerElement,
+    clusterId: number
+  ) => void;
+}
+
+export const FeaturesClusterMarker = ({
+  clusterId,
+  position,
+  size,
+  sizeAsText,
+  onMarkerClick
+}: Props) => {
+  const [markerRef, marker] = useAdvancedMarkerRef();
+
+  // Scale based on cluster size
+  const scale = Math.min(size / 10, 2);
+
+  return (
+    <AdvancedMarker
+      ref={markerRef}
+      position={position}
+      onClick={() => marker && onMarkerClick(marker, clusterId)}
+      className="cluster-marker">
+      <div
+        className="cluster"
+        style={{
+          width: `${40 * scale}px`,
+          height: `${40 * scale}px`,
+          background: '#1a73e8',
+          borderRadius: '50%',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: `${14 * scale}px`,
+          fontWeight: 'bold',
+          border: '3px solid white',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+          cursor: 'pointer'
+        }}>
+        {sizeAsText}
+      </div>
+    </AdvancedMarker>
+  );
+};
+```
+
+## Individual Marker Component
+
+```tsx feature-marker.tsx
+import React from 'react';
+import {AdvancedMarker, useAdvancedMarkerRef} from '@vis.gl/react-google-maps';
+
+interface Props {
+  featureId: string;
+  position: google.maps.LatLngLiteral;
+  onMarkerClick: (
+    marker: google.maps.marker.AdvancedMarkerElement,
+    featureId: string
+  ) => void;
+}
+
+export const FeatureMarker = ({
+  featureId,
+  position,
+  onMarkerClick
+}: Props) => {
+  const [markerRef, marker] = useAdvancedMarkerRef();
+
+  return (
+    <AdvancedMarker
+      ref={markerRef}
+      position={position}
+      onClick={() => marker && onMarkerClick(marker, featureId)}
+    />
+  );
+};
+```
+
+## GeoJSON Data Format
+
+Your data should be in GeoJSON format:
+
+```json
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "1",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.0, 53.5]
+      },
+      "properties": {
+        "name": "Location 1",
+        "description": "Description here"
+      }
+    }
+  ]
+}
+```
+
+## Handling Cluster Clicks
+
+When a cluster is clicked, you can:
+
+### Show InfoWindow
+
+```tsx
+const handleClusterClick = (marker, clusterId) => {
+  const leaves = getLeaves(clusterId);
+  setInfowindowData({anchor: marker, features: leaves});
+};
+```
+
+### Zoom to Expansion Zoom
+
+```tsx
+const handleClusterClick = (marker, clusterId) => {
+  const expansionZoom = getClusterExpansionZoom(clusterId);
+  map.setZoom(expansionZoom);
+  map.panTo(marker.position);
+};
+```
+
+### Show All Features
+
+```tsx
+const handleClusterClick = (marker, clusterId) => {
+  const leaves = getLeaves(clusterId);
+  // Display list of all features in the cluster
+  showFeatureList(leaves);
+};
+```
+
+## Performance Optimization
+
+<Note>
+**Best Practices:**
+- Use `React.memo()` for marker components to prevent unnecessary re-renders
+- Memoize callbacks with `useCallback()` to maintain referential equality
+- Adjust `maxZoom` based on your data density
+- Consider using Web Workers for very large datasets
+</Note>
+
+## Styling Clusters
+
+Customize cluster appearance based on size:
+
+```tsx
+const getClusterStyle = (size: number) => {
+  if (size < 10) {
+    return {background: '#51bbd6', scale: 1};
+  } else if (size < 100) {
+    return {background: '#f1f075', scale: 1.3};
+  } else {
+    return {background: '#f28cb1', scale: 1.6};
+  }
+};
+
+const {background, scale} = getClusterStyle(size);
+```
+
+## Alternative: Worker-Based Clustering
+
+For extremely large datasets, consider the [worker-marker-clustering example](https://github.com/visgl/react-google-maps/tree/main/examples/worker-marker-clustering) which offloads clustering to a Web Worker.
+
+## Installation
+
+Install Supercluster:
+
+```bash
+npm install supercluster
+```
+
+```bash
+npm install --save-dev @types/supercluster
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Custom Markers" icon="map-pin" href="/examples/custom-markers">
+    Customize individual marker appearance
+  </Card>
+  <Card title="Worker Clustering" icon="gears" href="https://github.com/visgl/react-google-maps/tree/main/examples/worker-marker-clustering">
+    Clustering with Web Workers for large datasets
+  </Card>
+</CardGroup>
+
+## Resources
+
+- [View full source on GitHub](https://github.com/visgl/react-google-maps/tree/main/examples/custom-marker-clustering)
+- [Try on CodeSandbox](https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/custom-marker-clustering)
+- [Supercluster Documentation](https://github.com/mapbox/supercluster)

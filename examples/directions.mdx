@@ -1,0 +1,450 @@
+---
+title: 'Directions'
+description: 'Integrate Google Directions API for route rendering and navigation'
+---
+
+This example demonstrates how to use the Google Maps Directions API with React Google Maps to display routes and navigation information.
+
+## Live Demo
+
+<Card title="Try it on CodeSandbox" icon="code" href="https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/directions">
+  Open this example in CodeSandbox to experiment with the code
+</Card>
+
+## Complete Example
+
+```tsx app.tsx
+import React, {useEffect, useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {
+  APIProvider,
+  Map,
+  useMapsLibrary,
+  useMap
+} from '@vis.gl/react-google-maps';
+
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY as string;
+
+const App = () => (
+  <APIProvider apiKey={API_KEY}>
+    <Map
+      defaultCenter={{lat: 43.65, lng: -79.38}}
+      defaultZoom={9}
+      gestureHandling={'greedy'}
+      fullscreenControl={false}>
+      <Directions />
+    </Map>
+  </APIProvider>;
+);
+
+function Directions() {
+  const map = useMap();
+  const routesLibrary = useMapsLibrary('routes');
+  const [directionsService, setDirectionsService] =
+    useState<google.maps.DirectionsService>();
+  const [directionsRenderer, setDirectionsRenderer] =
+    useState<google.maps.DirectionsRenderer>();
+  const [routes, setRoutes] = useState<google.maps.DirectionsRoute[]>([]);
+  const [routeIndex, setRouteIndex] = useState(0);
+  const selected = routes[routeIndex];
+  const leg = selected?.legs[0];
+
+  // Initialize directions service and renderer
+  useEffect(() => {
+    if (!routesLibrary || !map) return;
+    setDirectionsService(new routesLibrary.DirectionsService());
+    setDirectionsRenderer(
+      new routesLibrary.DirectionsRenderer({
+        draggable: true,
+        map
+      })
+    );
+  }, [routesLibrary, map]);
+
+  // Update routes when directions change (for draggable markers)
+  useEffect(() => {
+    if (!directionsRenderer) return;
+
+    const listener = directionsRenderer.addListener(
+      'directions_changed',
+      () => {
+        const result = directionsRenderer.getDirections();
+        if (result) {
+          setRoutes(result.routes);
+        }
+      }
+    );
+
+    return () => google.maps.event.removeListener(listener);
+  }, [directionsRenderer]);
+
+  // Fetch directions
+  useEffect(() => {
+    if (!directionsService || !directionsRenderer) return;
+
+    directionsService
+      .route({
+        origin: '100 Front St, Toronto ON',
+        destination: '500 College St, Toronto ON',
+        travelMode: google.maps.TravelMode.DRIVING,
+        provideRouteAlternatives: true
+      })
+      .then(response => {
+        directionsRenderer.setDirections(response);
+        setRoutes(response.routes);
+      });
+
+    return () => directionsRenderer.setMap(null);
+  }, [directionsService, directionsRenderer]);
+
+  // Update selected route
+  useEffect(() => {
+    if (!directionsRenderer) return;
+    directionsRenderer.setRouteIndex(routeIndex);
+  }, [routeIndex, directionsRenderer]);
+
+  if (!leg) return null;
+
+  return (
+    <div className="directions">
+      <h2>{selected.summary}</h2>
+      <p>
+        {leg.start_address.split(',')[0]} to {leg.end_address.split(',')[0]}
+      </p>
+      <p>Distance: {leg.distance?.text}</p>
+      <p>Duration: {leg.duration?.text}</p>
+
+      <h2>Other Routes</h2>
+      <ul>
+        {routes.map((route, index) => (
+          <li key={route.summary}>
+            <button onClick={() => setRouteIndex(index)}>
+              {route.summary}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default App;
+```
+
+## Key Concepts
+
+### Loading the Routes Library
+
+Use the `useMapsLibrary` hook to load the Google Maps routes library:
+
+```tsx
+const routesLibrary = useMapsLibrary('routes');
+```
+
+This ensures the library is loaded before attempting to use Directions services.
+
+### Directions Service
+
+The `DirectionsService` calculates routes between locations:
+
+```tsx
+const directionsService = new routesLibrary.DirectionsService();
+
+directionsService.route({
+  origin: '100 Front St, Toronto ON',
+  destination: '500 College St, Toronto ON',
+  travelMode: google.maps.TravelMode.DRIVING,
+  provideRouteAlternatives: true
+})
+.then(response => {
+  // Handle response
+});
+```
+
+### Directions Renderer
+
+The `DirectionsRenderer` displays routes on the map:
+
+```tsx
+const directionsRenderer = new routesLibrary.DirectionsRenderer({
+  draggable: true,  // Allow dragging waypoints
+  map               // Map instance
+});
+
+directionsRenderer.setDirections(response);
+```
+
+## Travel Modes
+
+Specify how the route should be calculated:
+
+```tsx
+directionsService.route({
+  origin: origin,
+  destination: destination,
+  travelMode: google.maps.TravelMode.DRIVING,  // or WALKING, BICYCLING, TRANSIT
+  // ...
+});
+```
+
+Available modes:
+- `DRIVING` - Driving directions
+- `WALKING` - Walking directions
+- `BICYCLING` - Bicycling directions
+- `TRANSIT` - Public transit directions
+
+## Route Alternatives
+
+Request multiple route options:
+
+```tsx
+directionsService.route({
+  origin: origin,
+  destination: destination,
+  travelMode: google.maps.TravelMode.DRIVING,
+  provideRouteAlternatives: true  // Get alternative routes
+})
+.then(response => {
+  const routes = response.routes;  // Array of route options
+});
+```
+
+## Switching Between Routes
+
+Allow users to select different routes:
+
+```tsx
+const [routeIndex, setRouteIndex] = useState(0);
+
+useEffect(() => {
+  if (!directionsRenderer) return;
+  directionsRenderer.setRouteIndex(routeIndex);
+}, [routeIndex, directionsRenderer]);
+
+// In your UI:
+{routes.map((route, index) => (
+  <button onClick={() => setRouteIndex(index)}>
+    {route.summary}
+  </button>
+))}
+```
+
+## Draggable Routes
+
+Enable users to drag waypoints:
+
+```tsx
+const directionsRenderer = new routesLibrary.DirectionsRenderer({
+  draggable: true,
+  map
+});
+
+// Listen for changes
+const listener = directionsRenderer.addListener(
+  'directions_changed',
+  () => {
+    const result = directionsRenderer.getDirections();
+    if (result) {
+      setRoutes(result.routes);
+    }
+  }
+);
+
+// Clean up
+return () => google.maps.event.removeListener(listener);
+```
+
+## Waypoints
+
+Add stops along the route:
+
+```tsx
+directionsService.route({
+  origin: 'Chicago, IL',
+  destination: 'Los Angeles, CA',
+  waypoints: [
+    {
+      location: 'Denver, CO',
+      stopover: true
+    },
+    {
+      location: 'Las Vegas, NV',
+      stopover: true
+    }
+  ],
+  travelMode: google.maps.TravelMode.DRIVING
+});
+```
+
+## Extracting Route Information
+
+Access detailed route data:
+
+```tsx
+const route = routes[routeIndex];
+const leg = route.legs[0];
+
+// Route summary
+const summary = route.summary;  // e.g., "I-90 W"
+
+// Distance and duration
+const distance = leg.distance?.text;  // e.g., "28.5 km"
+const duration = leg.duration?.text;  // e.g., "32 mins"
+
+// Addresses
+const startAddress = leg.start_address;
+const endAddress = leg.end_address;
+
+// Coordinates
+const startLocation = leg.start_location;  // LatLng
+const endLocation = leg.end_location;      // LatLng
+
+// Turn-by-turn steps
+const steps = leg.steps.map(step => ({
+  instructions: step.instructions,  // HTML instructions
+  distance: step.distance?.text,
+  duration: step.duration?.text
+}));
+```
+
+## Advanced Options
+
+### Avoid Highways/Tolls
+
+```tsx
+directionsService.route({
+  origin: origin,
+  destination: destination,
+  travelMode: google.maps.TravelMode.DRIVING,
+  avoidHighways: true,
+  avoidTolls: true,
+  avoidFerries: false
+});
+```
+
+### Transit Options
+
+```tsx
+directionsService.route({
+  origin: origin,
+  destination: destination,
+  travelMode: google.maps.TravelMode.TRANSIT,
+  transitOptions: {
+    modes: ['BUS', 'RAIL'],
+    routingPreference: 'FEWER_TRANSFERS'
+  }
+});
+```
+
+### Departure/Arrival Time
+
+```tsx
+const now = new Date();
+const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+directionsService.route({
+  origin: origin,
+  destination: destination,
+  travelMode: google.maps.TravelMode.DRIVING,
+  drivingOptions: {
+    departureTime: tomorrow,
+    trafficModel: 'pessimistic'
+  }
+});
+```
+
+## Customizing Renderer
+
+```tsx
+const directionsRenderer = new routesLibrary.DirectionsRenderer({
+  map: map,
+  draggable: true,
+  suppressMarkers: false,      // Hide default markers
+  suppressInfoWindows: false,  // Hide info windows
+  polylineOptions: {
+    strokeColor: '#FF0000',
+    strokeWeight: 5,
+    strokeOpacity: 0.8
+  },
+  markerOptions: {
+    // Custom marker options
+  }
+});
+```
+
+## Error Handling
+
+```tsx
+directionsService
+  .route({
+    origin: origin,
+    destination: destination,
+    travelMode: google.maps.TravelMode.DRIVING
+  })
+  .then(response => {
+    directionsRenderer.setDirections(response);
+  })
+  .catch(error => {
+    console.error('Directions request failed:', error);
+    // Handle errors:
+    // - ZERO_RESULTS: No route found
+    // - NOT_FOUND: Origin/destination not found
+    // - OVER_QUERY_LIMIT: Too many requests
+    // - REQUEST_DENIED: API key issues
+  });
+```
+
+## Complete Pattern
+
+Here's the recommended pattern for directions:
+
+```tsx
+function Directions({origin, destination}) {
+  const map = useMap();
+  const routesLibrary = useMapsLibrary('routes');
+  const [directionsService, setDirectionsService] = useState();
+  const [directionsRenderer, setDirectionsRenderer] = useState();
+  const [routes, setRoutes] = useState([]);
+
+  // 1. Initialize service and renderer
+  useEffect(() => {
+    if (!routesLibrary || !map) return;
+    setDirectionsService(new routesLibrary.DirectionsService());
+    setDirectionsRenderer(new routesLibrary.DirectionsRenderer({map}));
+  }, [routesLibrary, map]);
+
+  // 2. Fetch directions
+  useEffect(() => {
+    if (!directionsService || !directionsRenderer) return;
+
+    directionsService
+      .route({origin, destination, travelMode: google.maps.TravelMode.DRIVING})
+      .then(response => {
+        directionsRenderer.setDirections(response);
+        setRoutes(response.routes);
+      });
+
+    return () => directionsRenderer.setMap(null);
+  }, [directionsService, directionsRenderer, origin, destination]);
+
+  // 3. Render route info
+  return <div>{/* Route details */}</div>;
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Routes API" icon="route" href="https://developers.google.com/maps/documentation/javascript/directions">
+    Full Google Maps Directions API documentation
+  </Card>
+  <Card title="Markers & InfoWindows" icon="location-dot" href="/examples/markers-and-infowindows">
+    Add custom markers to your routes
+  </Card>
+</CardGroup>
+
+## Resources
+
+- [View full source on GitHub](https://github.com/visgl/react-google-maps/tree/main/examples/directions)
+- [Try on CodeSandbox](https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/directions)
+- [Google Directions API Documentation](https://developers.google.com/maps/documentation/javascript/directions)

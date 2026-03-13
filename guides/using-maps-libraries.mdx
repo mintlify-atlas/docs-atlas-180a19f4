@@ -1,0 +1,256 @@
+---
+title: Using Maps Libraries
+description: Learn how to use additional Google Maps JavaScript API libraries like Places, Directions, and Geocoding with the useMapsLibrary hook
+---
+
+The Google Maps JavaScript API provides many additional libraries for features like geocoding, routing, the Places API, and more. These libraries are not loaded by default, but you can load them dynamically using the `useMapsLibrary` hook.
+
+## The useMapsLibrary Hook
+
+The `useMapsLibrary` hook handles the dynamic loading of Maps JavaScript API libraries. It returns the library API object once loaded, triggering a re-render of your component.
+
+```tsx
+import { useMapsLibrary, useMap } from '@vis.gl/react-google-maps';
+
+const MyComponent = () => {
+  const map = useMap();
+  const placesLibrary = useMapsLibrary('places');
+
+  // placesLibrary will be null until loaded
+  useEffect(() => {
+    if (!placesLibrary || !map) return;
+
+    // Now you can use the Places library
+    const service = new placesLibrary.PlacesService(map);
+  }, [placesLibrary, map]);
+
+  return null;
+};
+```
+
+<Note>
+The component calling `useMapsLibrary` will automatically re-render when the library finishes loading.
+</Note>
+
+## Available Libraries
+
+You can load any of the [Google Maps JavaScript API libraries](https://developers.google.com/maps/documentation/javascript/libraries):
+
+- `places` - Places API for location search and details
+- `routes` - Directions and distance matrix services
+- `geocoding` - Address geocoding and reverse geocoding
+- `drawing` - Drawing tools for shapes
+- `geometry` - Geometry utilities
+- `visualization` - Data visualization layers (heatmaps)
+- `marker` - Advanced marker functionality
+
+## Using the Places Library
+
+<Steps>
+
+### Load the Places Library
+
+Use the `useMapsLibrary` hook to load the Places library:
+
+```tsx
+import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { useEffect, useState } from 'react';
+
+function PlacesComponent() {
+  const map = useMap();
+  const placesLibrary = useMapsLibrary('places');
+  const [placesService, setPlacesService] = useState(null);
+
+  useEffect(() => {
+    if (!placesLibrary || !map) return;
+    setPlacesService(new placesLibrary.PlacesService(map));
+  }, [placesLibrary, map]);
+
+  // Use placesService...
+}
+```
+
+### Search for Places
+
+Once the service is initialized, you can search for places:
+
+```tsx
+useEffect(() => {
+  if (!placesService) return;
+
+  const request = {
+    query: 'restaurants near me',
+    fields: ['name', 'geometry']
+  };
+
+  placesService.findPlaceFromQuery(request, (results, status) => {
+    if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+      console.log('Found places:', results);
+    }
+  });
+}, [placesService]);
+```
+
+</Steps>
+
+## Using the Directions Library
+
+The Directions library provides routing and navigation features:
+
+```tsx
+import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { useEffect, useState } from 'react';
+
+function DirectionsComponent() {
+  const map = useMap();
+  const routesLibrary = useMapsLibrary('routes');
+  const [directionsService, setDirectionsService] = useState();
+  const [directionsRenderer, setDirectionsRenderer] = useState();
+
+  // Initialize services
+  useEffect(() => {
+    if (!routesLibrary || !map) return;
+    
+    setDirectionsService(new routesLibrary.DirectionsService());
+    setDirectionsRenderer(new routesLibrary.DirectionsRenderer({ map }));
+  }, [routesLibrary, map]);
+
+  // Calculate route
+  useEffect(() => {
+    if (!directionsService || !directionsRenderer) return;
+
+    directionsService
+      .route({
+        origin: '100 Front St, Toronto ON',
+        destination: '500 College St, Toronto ON',
+        travelMode: google.maps.TravelMode.DRIVING,
+        provideRouteAlternatives: true
+      })
+      .then(response => {
+        directionsRenderer.setDirections(response);
+      });
+  }, [directionsService, directionsRenderer]);
+
+  return null;
+}
+```
+
+<Note>
+For a complete example, see the [Directions example](https://github.com/visgl/react-google-maps/tree/main/examples/directions).
+</Note>
+
+## Using the Geocoding Library
+
+The Geocoding library converts addresses to coordinates and vice versa:
+
+```tsx
+import { useMapsLibrary } from '@vis.gl/react-google-maps';
+import { useEffect, useState } from 'react';
+
+function GeocodingComponent() {
+  const geocodingLibrary = useMapsLibrary('geocoding');
+  const [geocoder, setGeocoder] = useState(null);
+
+  useEffect(() => {
+    if (!geocodingLibrary) return;
+    setGeocoder(new geocodingLibrary.Geocoder());
+  }, [geocodingLibrary]);
+
+  const geocodeAddress = (address: string) => {
+    if (!geocoder) return;
+
+    geocoder.geocode({ address }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const location = results[0].geometry.location;
+        console.log('Coordinates:', location.toJSON());
+      }
+    });
+  };
+
+  return (
+    <button onClick={() => geocodeAddress('1600 Amphitheatre Parkway, Mountain View, CA')}>
+      Geocode Address
+    </button>
+  );
+}
+```
+
+## Creating Custom Hooks
+
+You can extract reusable hooks for commonly used libraries:
+
+```tsx
+import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { useEffect, useState } from 'react';
+
+function usePlacesService() {
+  const map = useMap();
+  const placesLibrary = useMapsLibrary('places');
+  const [placesService, setPlacesService] = useState(null);
+
+  useEffect(() => {
+    if (!placesLibrary || !map) return;
+    setPlacesService(new placesLibrary.PlacesService(map));
+  }, [placesLibrary, map]);
+
+  return placesService;
+}
+
+function useDirectionsService() {
+  const routesLibrary = useMapsLibrary('routes');
+  const [directionsService, setDirectionsService] = useState(null);
+
+  useEffect(() => {
+    if (!routesLibrary) return;
+    setDirectionsService(new routesLibrary.DirectionsService());
+  }, [routesLibrary]);
+
+  return directionsService;
+}
+
+// Use in your components
+function MyComponent() {
+  const placesService = usePlacesService();
+  const directionsService = useDirectionsService();
+
+  // Use the services...
+}
+```
+
+## Loading Multiple Libraries
+
+You can load multiple libraries in the same component:
+
+```tsx
+function MultiLibraryComponent() {
+  const placesLibrary = useMapsLibrary('places');
+  const routesLibrary = useMapsLibrary('routes');
+  const geocodingLibrary = useMapsLibrary('geocoding');
+
+  useEffect(() => {
+    if (!placesLibrary || !routesLibrary || !geocodingLibrary) return;
+
+    // All libraries loaded, use them...
+  }, [placesLibrary, routesLibrary, geocodingLibrary]);
+
+  return null;
+}
+```
+
+## Best Practices
+
+<Warning>
+Always check if the library is loaded before using it. The hook returns `null` until the library is ready.
+</Warning>
+
+- Use `useEffect` to react to library loading
+- Store service instances in state to avoid recreating them
+- Clean up listeners and services in `useEffect` cleanup functions
+- Extract custom hooks for frequently used libraries
+- Load only the libraries you need to reduce bundle size
+
+## Related Examples
+
+- [Directions Example](https://github.com/visgl/react-google-maps/tree/main/examples/directions)
+- [Autocomplete Example](https://github.com/visgl/react-google-maps/tree/main/examples/autocomplete)
+- [Geometry Example](https://github.com/visgl/react-google-maps/tree/main/examples/geometry)

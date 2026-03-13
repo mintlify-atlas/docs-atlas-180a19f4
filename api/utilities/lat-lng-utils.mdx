@@ -1,0 +1,270 @@
+---
+title: "LatLng Utilities"
+description: "Utility functions for working with geographic coordinates"
+---
+
+## Overview
+
+React Google Maps provides utility functions to work with geographic coordinates, including type checking, equality comparison, and conversion between different coordinate representations.
+
+## Functions
+
+### isLatLngLiteral
+
+Type guard to check if an object is a valid `LatLngLiteral`.
+
+```typescript
+function isLatLngLiteral(obj: unknown): obj is google.maps.LatLngLiteral
+```
+
+<ParamField path="obj" type="unknown">
+  The object to check
+</ParamField>
+
+**Returns**: `boolean` - `true` if the object is a valid `LatLngLiteral` with finite `lat` and `lng` properties
+
+#### Usage Example
+
+```tsx
+import {isLatLngLiteral} from '@vis.gl/react-google-maps';
+
+function validateCoordinate(coord: unknown) {
+  if (isLatLngLiteral(coord)) {
+    // TypeScript knows coord is LatLngLiteral here
+    console.log(`Valid: ${coord.lat}, ${coord.lng}`);
+    return true;
+  }
+  
+  console.error('Invalid coordinate');
+  return false;
+}
+
+// Valid
+validateCoordinate({lat: 40.7, lng: -74});  // true
+
+// Invalid
+validateCoordinate({lat: 'invalid', lng: -74});  // false
+validateCoordinate({x: 40.7, y: -74});  // false
+validateCoordinate(null);  // false
+```
+
+### latLngEquals
+
+Compare two coordinate objects for equality.
+
+```typescript
+function latLngEquals(
+  a: google.maps.LatLngLiteral | google.maps.LatLng | undefined | null,
+  b: google.maps.LatLngLiteral | google.maps.LatLng | undefined | null
+): boolean
+```
+
+<ParamField path="a" type="LatLngLiteral | LatLng | undefined | null">
+  First coordinate to compare
+</ParamField>
+
+<ParamField path="b" type="LatLngLiteral | LatLng | undefined | null">
+  Second coordinate to compare
+</ParamField>
+
+**Returns**: `boolean` - `true` if both coordinates have the same latitude and longitude
+
+<Note>
+This function handles both `LatLngLiteral` objects and `google.maps.LatLng` class instances, automatically converting them for comparison.
+</Note>
+
+#### Usage Example
+
+```tsx
+import {latLngEquals} from '@vis.gl/react-google-maps';
+
+const coord1 = {lat: 40.7128, lng: -74.0060};
+const coord2 = {lat: 40.7128, lng: -74.0060};
+const coord3 = {lat: 40.7580, lng: -73.9855};
+
+latLngEquals(coord1, coord2);  // true
+latLngEquals(coord1, coord3);  // false
+latLngEquals(coord1, null);    // false
+latLngEquals(null, null);      // false
+
+// Works with google.maps.LatLng instances too
+const latLng1 = new google.maps.LatLng(40.7128, -74.0060);
+const latLng2 = {lat: 40.7128, lng: -74.0060};
+latLngEquals(latLng1, latLng2);  // true
+```
+
+#### Practical Example: Prevent Unnecessary Updates
+
+```tsx
+import {latLngEquals} from '@vis.gl/react-google-maps';
+import {useEffect, useState} from 'react';
+
+function MarkerComponent({position}: {position: google.maps.LatLngLiteral}) {
+  const [lastPosition, setLastPosition] = useState(position);
+
+  useEffect(() => {
+    // Only update if position actually changed
+    if (!latLngEquals(position, lastPosition)) {
+      console.log('Position changed, updating marker');
+      setLastPosition(position);
+      // Perform expensive operation...
+    }
+  }, [position, lastPosition]);
+
+  return <AdvancedMarker position={position} />;
+}
+```
+
+### toLatLngLiteral
+
+Convert a coordinate to `LatLngLiteral` format.
+
+```typescript
+function toLatLngLiteral(
+  obj: google.maps.LatLngLiteral | google.maps.LatLng
+): google.maps.LatLngLiteral
+```
+
+<ParamField path="obj" type="LatLngLiteral | LatLng">
+  Coordinate to convert (either literal object or LatLng instance)
+</ParamField>
+
+**Returns**: `google.maps.LatLngLiteral` - Plain object with `lat` and `lng` properties
+
+<Info>
+If the input is already a `LatLngLiteral`, it's returned as-is. If it's a `google.maps.LatLng` instance, it's converted using the `toJSON()` method.
+</Info>
+
+#### Usage Example
+
+```tsx
+import {toLatLngLiteral} from '@vis.gl/react-google-maps';
+
+// Already a literal - returned unchanged
+const literal = {lat: 40.7, lng: -74};
+const result1 = toLatLngLiteral(literal);
+console.log(result1);  // {lat: 40.7, lng: -74}
+
+// LatLng instance - converted to literal
+const latLng = new google.maps.LatLng(40.7, -74);
+const result2 = toLatLngLiteral(latLng);
+console.log(result2);  // {lat: 40.7, lng: -74}
+```
+
+#### Practical Example: Normalize Coordinates
+
+```tsx
+import {toLatLngLiteral} from '@vis.gl/react-google-maps';
+
+function saveMarkerPosition(
+  position: google.maps.LatLngLiteral | google.maps.LatLng
+) {
+  // Always convert to literal for consistent storage format
+  const normalizedPosition = toLatLngLiteral(position);
+  
+  localStorage.setItem('markerPosition', JSON.stringify(normalizedPosition));
+}
+
+// Works with both types
+saveMarkerPosition({lat: 40.7, lng: -74});
+saveMarkerPosition(new google.maps.LatLng(40.7, -74));
+```
+
+## Complete Example
+
+Here's a comprehensive example using all three utilities:
+
+```tsx
+import {
+  isLatLngLiteral,
+  latLngEquals,
+  toLatLngLiteral
+} from '@vis.gl/react-google-maps';
+import {useState, useEffect} from 'react';
+
+interface LocationManagerProps {
+  initialPosition: unknown;
+  onPositionChange: (position: google.maps.LatLngLiteral) => void;
+}
+
+function LocationManager({initialPosition, onPositionChange}: LocationManagerProps) {
+  const [position, setPosition] = useState<google.maps.LatLngLiteral | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Validate initial position
+    if (!isLatLngLiteral(initialPosition)) {
+      setError('Invalid initial position');
+      return;
+    }
+
+    // Normalize to literal format
+    const normalized = toLatLngLiteral(initialPosition);
+    
+    // Only update if position changed
+    if (!latLngEquals(position, normalized)) {
+      setPosition(normalized);
+      onPositionChange(normalized);
+    }
+  }, [initialPosition, position, onPositionChange]);
+
+  const handleMapClick = (event: MapMouseEvent) => {
+    const newPosition = event.detail.latLng;
+    
+    if (newPosition && !latLngEquals(position, newPosition)) {
+      setPosition(newPosition);
+      onPositionChange(newPosition);
+    }
+  };
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  if (!position) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <Map
+      center={position}
+      zoom={12}
+      onClick={handleMapClick}
+    >
+      <AdvancedMarker position={position} />
+    </Map>
+  );
+}
+
+// Usage
+<LocationManager
+  initialPosition={{lat: 40.7128, lng: -74.0060}}
+  onPositionChange={(pos) => console.log('New position:', pos)}
+/>
+```
+
+## Type Reference
+
+```typescript
+// Google Maps API types used by these utilities
+namespace google.maps {
+  interface LatLngLiteral {
+    lat: number;
+    lng: number;
+  }
+
+  class LatLng {
+    constructor(lat: number, lng: number);
+    lat(): number;
+    lng(): number;
+    toJSON(): LatLngLiteral;
+  }
+}
+```
+
+## See Also
+
+- [Camera Types](/api/types/camera) - Camera and viewport types
+- [Map Component](/api/components/map) - Using coordinates with Map
+- [AdvancedMarker](/api/components/advanced-marker) - Positioning markers
+- [Event Types](/api/types/events) - MapMouseEvent with latLng

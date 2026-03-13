@@ -1,0 +1,409 @@
+---
+title: Styling Maps
+description: Learn how to style your Google Maps with mapId, colorScheme, and custom styling options
+---
+
+Google Maps offers multiple ways to customize the appearance of your maps, from simple color scheme changes to complex cloud-based styling with Map IDs.
+
+## Cloud-Based Styling with Map IDs
+
+The recommended approach for styling maps is using a Map ID with cloud-based styling in the Google Cloud Console.
+
+### What is a Map ID?
+
+A Map ID is an identifier that references a specific map style configuration in the Google Cloud Console. Map IDs enable:
+
+- Cloud-based map styling
+- Advanced features like photorealistic 3D tiles
+- Centralized style management
+- Version control for map styles
+
+### Creating a Map ID
+
+<Steps>
+
+### Open Google Cloud Console
+
+Navigate to the [Google Cloud Console](https://console.cloud.google.com/google/maps-apis/studio/maps)
+
+### Create a New Map ID
+
+1. Click "Create Map ID"
+2. Enter a name and description
+3. Choose a map type (Vector or Raster)
+4. Click "Save"
+
+### Customize Your Style
+
+Use the visual editor to customize:
+- Colors for roads, water, terrain
+- Labels and typography
+- Point of interest visibility
+- Administrative boundaries
+
+### Apply to Your Map
+
+Copy the Map ID and use it in your React component:
+
+```tsx
+<Map
+  mapId="YOUR_MAP_ID_HERE"
+  defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+  defaultZoom={12}
+/>
+```
+
+</Steps>
+
+### Example with Map ID
+
+```tsx
+import { APIProvider, Map } from '@vis.gl/react-google-maps';
+
+function StyledMap() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <Map
+        mapId="bf51a910020fa25a"
+        defaultCenter={{ lat: 22, lng: 0 }}
+        defaultZoom={3}
+        gestureHandling="greedy"
+        disableDefaultUI
+      />
+    </APIProvider>
+  );
+}
+```
+
+## Color Scheme
+
+For quick light/dark theme switching, use the `colorScheme` prop:
+
+```tsx
+import { Map, ColorScheme } from '@vis.gl/react-google-maps';
+
+function ThemedMap() {
+  const [theme, setTheme] = useState<ColorScheme>(ColorScheme.LIGHT);
+
+  return (
+    <>
+      <button onClick={() => setTheme(
+        theme === ColorScheme.LIGHT ? ColorScheme.DARK : ColorScheme.LIGHT
+      )}>
+        Toggle Theme
+      </button>
+      
+      <Map
+        mapId="bf51a910020fa25a"
+        defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+        defaultZoom={12}
+        colorScheme={theme}
+      />
+    </>
+  );
+}
+```
+
+### Available Color Schemes
+
+```typescript
+ColorScheme.LIGHT         // Light theme
+ColorScheme.DARK          // Dark theme  
+ColorScheme.FOLLOW_SYSTEM // Match system theme
+```
+
+<Note>
+`colorScheme` only works with maps that have a Map ID configured.
+</Note>
+
+## Map Type Styling
+
+Change the base map type without a Map ID:
+
+```tsx
+<Map
+  mapTypeId="roadmap"  // 'roadmap', 'satellite', 'hybrid', 'terrain'
+  defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+  defaultZoom={12}
+/>
+```
+
+### Switching Map Types
+
+```tsx
+import { useState } from 'react';
+import { Map } from '@vis.gl/react-google-maps';
+
+type MapTypeId = 'roadmap' | 'satellite' | 'hybrid' | 'terrain';
+
+function MapTypeSwitcher() {
+  const [mapType, setMapType] = useState<MapTypeId>('roadmap');
+
+  return (
+    <>
+      <select value={mapType} onChange={(e) => setMapType(e.target.value as MapTypeId)}>
+        <option value="roadmap">Roadmap</option>
+        <option value="satellite">Satellite</option>
+        <option value="hybrid">Hybrid</option>
+        <option value="terrain">Terrain</option>
+      </select>
+
+      <Map
+        mapTypeId={mapType}
+        defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+        defaultZoom={12}
+      />
+    </>
+  );
+}
+```
+
+## Raster Styling (Legacy)
+
+For maps without a Map ID, you can use raster styling with the `styles` prop:
+
+<Warning>
+Raster styling is a legacy feature. Use Map IDs with cloud-based styling for new projects.
+</Warning>
+
+```tsx
+import { Map } from '@vis.gl/react-google-maps';
+
+const customStyles: google.maps.MapTypeStyle[] = [
+  {
+    elementType: 'geometry',
+    stylers: [{ color: '#242f3e' }]
+  },
+  {
+    elementType: 'labels.text.stroke',
+    stylers: [{ color: '#242f3e' }]
+  },
+  {
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#746855' }]
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#17263c' }]
+  }
+];
+
+function CustomStyledMap() {
+  return (
+    <Map
+      defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+      defaultZoom={12}
+      styles={customStyles}
+      mapTypeId="roadmap"
+    />
+  );
+}
+```
+
+### Example Style Templates
+
+<Accordion title="Dark Theme Style">
+
+```typescript
+const darkTheme: google.maps.MapTypeStyle[] = [
+  { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+  {
+    featureType: 'administrative.locality',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#d59563' }]
+  },
+  {
+    featureType: 'poi',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#d59563' }]
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry',
+    stylers: [{ color: '#263c3f' }]
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry',
+    stylers: [{ color: '#38414e' }]
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry',
+    stylers: [{ color: '#746855' }]
+  },
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#17263c' }]
+  }
+];
+```
+
+</Accordion>
+
+<Accordion title="Bright Colors Style">
+
+```typescript
+const brightColors: google.maps.MapTypeStyle[] = [
+  {
+    featureType: 'water',
+    elementType: 'geometry',
+    stylers: [{ color: '#a2daf2' }]
+  },
+  {
+    featureType: 'landscape.natural',
+    elementType: 'geometry.fill',
+    stylers: [{ color: '#dae6dc' }]
+  },
+  {
+    featureType: 'road',
+    elementType: 'geometry.fill',
+    stylers: [{ color: '#ffffff' }]
+  },
+  {
+    featureType: 'poi.park',
+    elementType: 'geometry.fill',
+    stylers: [{ color: '#b6d5a0' }]
+  }
+];
+```
+
+</Accordion>
+
+## Complete Styling Example
+
+Here's a complete example with multiple styling options:
+
+```tsx
+import { useState } from 'react';
+import { APIProvider, Map, ColorScheme } from '@vis.gl/react-google-maps';
+
+type MapConfig = {
+  id: string;
+  label: string;
+  mapId?: string;
+  mapTypeId?: string;
+  styles?: google.maps.MapTypeStyle[];
+};
+
+const configs: MapConfig[] = [
+  {
+    id: 'light',
+    label: 'Light',
+    mapId: '49ae42fed52588c3',
+    mapTypeId: 'roadmap'
+  },
+  {
+    id: 'dark',
+    label: 'Dark',
+    mapId: '739af084373f96fe',
+    mapTypeId: 'roadmap'
+  },
+  {
+    id: 'satellite',
+    label: 'Satellite',
+    mapTypeId: 'satellite'
+  },
+  {
+    id: 'hybrid',
+    label: 'Hybrid',
+    mapTypeId: 'hybrid'
+  },
+  {
+    id: 'terrain',
+    label: 'Terrain',
+    mapTypeId: 'terrain'
+  }
+];
+
+function StyleSwitcherExample() {
+  const [config, setConfig] = useState<MapConfig>(configs[0]);
+
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        {configs.map(c => (
+          <button
+            key={c.id}
+            onClick={() => setConfig(c)}
+            style={{
+              padding: '8px 16px',
+              background: config.id === c.id ? '#1a73e8' : '#fff',
+              color: config.id === c.id ? '#fff' : '#000',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      <Map
+        defaultCenter={{ lat: 22, lng: 0 }}
+        defaultZoom={3}
+        mapId={config.mapId || null}
+        mapTypeId={config.mapTypeId}
+        styles={config.styles}
+        gestureHandling="greedy"
+        disableDefaultUI
+      />
+    </APIProvider>
+  );
+}
+```
+
+## Combining Map ID with Map Types
+
+You can use a Map ID with different map types:
+
+```tsx
+<Map
+  mapId="bf51a910020fa25a"  // Your custom style
+  mapTypeId="satellite"      // Apply to satellite view
+  defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+  defaultZoom={12}
+/>
+```
+
+<Note>
+When combining Map IDs with different map types, the Map ID styling will be applied on top of the base map type.
+</Note>
+
+## Rendering Type
+
+Control how the map is rendered:
+
+```tsx
+import { Map, RenderingType } from '@vis.gl/react-google-maps';
+
+<Map
+  renderingType={RenderingType.VECTOR}  // or RenderingType.RASTER
+  defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+  defaultZoom={12}
+/>
+```
+
+## Best Practices
+
+- **Use Map IDs** for production apps - easier to update styles without code changes
+- **Test themes** on different devices and in different lighting conditions
+- **Consider accessibility** - ensure sufficient contrast for labels and roads
+- **Optimize for performance** - vector maps are generally more performant than raster
+- **Version control** - use different Map IDs for development and production
+
+## Style Resources
+
+- [Styling Wizard](https://mapstyle.withgoogle.com/) - Visual map style editor
+- [Snazzy Maps](https://snazzymaps.com/) - Community-created map styles
+- [Google Maps Platform Styling](https://developers.google.com/maps/documentation/javascript/styling) - Official styling guide
+
+## Related Examples
+
+- [Change Map Styles Example](https://github.com/visgl/react-google-maps/tree/main/examples/change-map-styles)
+- [Multiple Maps Example](https://github.com/visgl/react-google-maps/tree/main/examples/multiple-maps)

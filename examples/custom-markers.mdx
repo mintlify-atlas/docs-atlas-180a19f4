@@ -1,0 +1,348 @@
+---
+title: 'Custom Markers'
+description: 'Create interactive markers with custom HTML content and styling'
+---
+
+This example demonstrates how to create fully customized markers with HTML content, interactive states, and complex designs.
+
+## Live Demo
+
+<Card title="Try it on CodeSandbox" icon="code" href="https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/advanced-marker-interaction">
+  Open this example in CodeSandbox to experiment with the code
+</Card>
+
+## Complete Example
+
+This example shows markers with hover effects, click interactions, and info windows:
+
+```tsx app.tsx
+import React, {useCallback, useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {
+  AdvancedMarker,
+  AdvancedMarkerAnchorPoint,
+  APIProvider,
+  InfoWindow,
+  Map,
+  Pin,
+  useAdvancedMarkerRef
+} from '@vis.gl/react-google-maps';
+
+const API_KEY = process.env.GOOGLE_MAPS_API_KEY as string;
+
+const App = () => {
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedMarker, setSelectedMarker] = 
+    useState<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const [infoWindowShown, setInfoWindowShown] = useState(false);
+
+  const onMouseEnter = useCallback((id: string) => setHoverId(id), []);
+  const onMouseLeave = useCallback(() => setHoverId(null), []);
+  
+  const onMarkerClick = useCallback(
+    (id: string, marker: google.maps.marker.AdvancedMarkerElement) => {
+      setSelectedId(id);
+      setSelectedMarker(marker);
+      
+      if (id !== selectedId) {
+        setInfoWindowShown(true);
+      } else {
+        setInfoWindowShown(isShown => !isShown);
+      }
+    },
+    [selectedId]
+  );
+
+  const onMapClick = useCallback(() => {
+    setSelectedId(null);
+    setSelectedMarker(null);
+    setInfoWindowShown(false);
+  }, []);
+
+  const handleInfowindowCloseClick = useCallback(
+    () => setInfoWindowShown(false),
+    []
+  );
+
+  return (
+    <APIProvider apiKey={API_KEY} libraries={['marker']}>
+      <Map
+        mapId={'bf51a910020fa25a'}
+        defaultZoom={12}
+        defaultCenter={{lat: 53.55909, lng: 10.00577}}
+        gestureHandling={'greedy'}
+        onClick={onMapClick}
+        clickableIcons={false}
+        disableDefaultUI>
+        
+        {/* Marker with custom Pin styling */}
+        <AdvancedMarkerWithRef
+          position={{lat: 53.56, lng: 10.01}}
+          onMarkerClick={(marker) => onMarkerClick('pin-1', marker)}
+          onMouseEnter={() => onMouseEnter('pin-1')}
+          onMouseLeave={onMouseLeave}
+          className="custom-marker"
+          style={{
+            transform: `scale(${hoverId === 'pin-1' ? 1.3 : 1})`,
+            transformOrigin: AdvancedMarkerAnchorPoint.BOTTOM.join(' ')
+          }}>
+          <Pin
+            background={selectedId === 'pin-1' ? '#22ccff' : 'orange'}
+            borderColor={selectedId === 'pin-1' ? '#1e89a1' : undefined}
+            glyphColor={selectedId === 'pin-1' ? '#0f677a' : undefined}
+          />
+        </AdvancedMarkerWithRef>
+
+        {/* Marker with custom HTML content */}
+        <AdvancedMarkerWithRef
+          position={{lat: 53.55, lng: 10.00}}
+          onMarkerClick={(marker) => onMarkerClick('html-1', marker)}
+          onMouseEnter={() => onMouseEnter('html-1')}
+          onMouseLeave={onMouseLeave}
+          className="custom-marker"
+          style={{
+            transform: `scale(${hoverId === 'html-1' ? 1.3 : 1})`,
+          }}>
+          <div
+            className={`custom-html-content ${
+              selectedId === 'html-1' ? 'selected' : ''
+            }`}
+            style={{
+              width: 32,
+              height: 32,
+              background: selectedId === 'html-1' ? '#22ccff' : '#ff6b6b',
+              borderRadius: '50%',
+              border: '3px solid white',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+              cursor: 'pointer'
+            }}
+          />
+        </AdvancedMarkerWithRef>
+
+        {infoWindowShown && selectedMarker && (
+          <InfoWindow
+            anchor={selectedMarker}
+            pixelOffset={[0, -2]}
+            onCloseClick={handleInfowindowCloseClick}>
+            <h2>Marker {selectedId}</h2>
+            <p>This is custom marker content</p>
+          </InfoWindow>
+        )}
+      </Map>
+    </APIProvider>
+  );
+};
+
+export default App;
+```
+
+## AdvancedMarker with Ref Pattern
+
+To interact with markers and anchor InfoWindows, use a ref:
+
+```tsx
+import {useAdvancedMarkerRef} from '@vis.gl/react-google-maps';
+
+const AdvancedMarkerWithRef = (props) => {
+  const {children, onMarkerClick, ...advancedMarkerProps} = props;
+  const [markerRef, marker] = useAdvancedMarkerRef();
+
+  return (
+    <AdvancedMarker
+      ref={markerRef}
+      onClick={() => {
+        if (marker) {
+          onMarkerClick(marker);
+        }
+      }}
+      {...advancedMarkerProps}>
+      {children}
+    </AdvancedMarker>
+  );
+};
+```
+
+## Styling Custom Markers
+
+### CSS Transitions
+
+Add smooth transitions to marker interactions:
+
+```css
+.custom-marker {
+  transition: transform 0.2s ease-out;
+  cursor: pointer;
+}
+
+.custom-html-content {
+  transition: all 0.2s ease-out;
+}
+
+.custom-html-content.selected {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+```
+
+### Dynamic Styles
+
+Apply styles based on marker state:
+
+```tsx
+<AdvancedMarker
+  className="custom-marker"
+  style={{
+    transform: `scale(${isHovered || isSelected ? 1.3 : 1})`,
+    transformOrigin: AdvancedMarkerAnchorPoint.BOTTOM.join(' ')
+  }}>
+  {/* Content */}
+</AdvancedMarker>
+```
+
+## Anchor Points
+
+Control where the marker attaches to its position:
+
+```tsx
+import {AdvancedMarkerAnchorPoint} from '@vis.gl/react-google-maps';
+
+<AdvancedMarker
+  anchorPoint={AdvancedMarkerAnchorPoint.BOTTOM}
+  position={{lat: 53.55, lng: 10.00}}>
+  {/* Content */}
+</AdvancedMarker>
+```
+
+Available anchor points:
+- `TOP`
+- `BOTTOM`
+- `LEFT`
+- `RIGHT`
+- `CENTER`
+- `TOP_LEFT`
+- `TOP_RIGHT`
+- `BOTTOM_LEFT`
+- `BOTTOM_RIGHT`
+
+## Z-Index Management
+
+Control marker stacking order:
+
+```tsx
+const markers = data
+  .sort((a, b) => b.position.lat - a.position.lat)
+  .map((item, index) => ({
+    ...item,
+    zIndex: index
+  }));
+
+const Z_INDEX_HOVER = markers.length + 1;
+const Z_INDEX_SELECTED = markers.length + 2;
+
+<AdvancedMarker
+  zIndex={
+    selectedId === id ? Z_INDEX_SELECTED :
+    hoverId === id ? Z_INDEX_HOVER :
+    defaultZIndex
+  }
+/>
+```
+
+## Complex Custom Marker Example
+
+Here's a real estate listing marker with image gallery:
+
+```tsx
+import React, {useState} from 'react';
+import {AdvancedMarker} from '@vis.gl/react-google-maps';
+import classNames from 'classnames';
+
+interface Props {
+  listing: RealEstateListing;
+}
+
+export const CustomAdvancedMarker = ({listing}: Props) => {
+  const [clicked, setClicked] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  
+  const position = {
+    lat: listing.latitude,
+    lng: listing.longitude
+  };
+
+  return (
+    <AdvancedMarker
+      position={position}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => setClicked(!clicked)}
+      className={classNames('real-estate-marker', {clicked, hovered})}>
+      <div className="custom-pin">
+        <button className="close-button">
+          <span>×</span>
+        </button>
+
+        <div className="image-container">
+          <img src={listing.images[0]} alt={listing.title} />
+          <span className="icon">🏠</span>
+        </div>
+
+        <div className="details">
+          <h3>{listing.title}</h3>
+          <p className="price">${listing.price.toLocaleString()}</p>
+          <p className="bedrooms">{listing.bedrooms} bed | {listing.bathrooms} bath</p>
+        </div>
+      </div>
+      
+      <div className="tip" />
+    </AdvancedMarker>
+  );
+};
+```
+
+## Collision Behavior
+
+Control how markers behave when they overlap:
+
+```tsx
+import {CollisionBehavior} from '@vis.gl/react-google-maps';
+
+<AdvancedMarker
+  collisionBehavior={CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY}
+  position={position}>
+  {/* Content */}
+</AdvancedMarker>
+```
+
+Options:
+- `REQUIRED` - Marker always shows
+- `OPTIONAL_AND_HIDES_LOWER_PRIORITY` - May hide based on priority
+- `REQUIRED_AND_HIDES_OPTIONAL` - Shows and hides optional markers
+
+## Performance Tips
+
+<Note>
+**Optimize Rendering:**
+- Use `React.memo()` for marker components
+- Memoize callbacks with `useCallback()`
+- Limit the number of markers rendered simultaneously
+- Consider clustering for large datasets (see [Clustering example](/examples/clustering))
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Marker Clustering" icon="layer-group" href="/examples/clustering">
+    Learn how to cluster large numbers of markers
+  </Card>
+  <Card title="AdvancedMarker API" icon="book" href="/api/components/advanced-marker">
+    Complete API reference
+  </Card>
+</CardGroup>
+
+## Resources
+
+- [View full source on GitHub](https://github.com/visgl/react-google-maps/tree/main/examples/advanced-marker-interaction)
+- [Try on CodeSandbox](https://codesandbox.io/s/github/visgl/react-google-maps/tree/main/examples/advanced-marker-interaction)
+- [Real estate example](https://github.com/visgl/react-google-maps/tree/main/examples/advanced-marker)

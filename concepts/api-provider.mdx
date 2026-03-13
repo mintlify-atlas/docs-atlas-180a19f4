@@ -1,0 +1,219 @@
+---
+title: APIProvider
+description: Understanding the APIProvider component and how it loads the Google Maps JavaScript API
+---
+
+The `APIProvider` component is the foundation of any React Google Maps application. It loads the Google Maps JavaScript API and provides context for all map components and hooks in your application.
+
+## Overview
+
+The `APIProvider` wraps your application and handles:
+
+- Loading the Google Maps JavaScript API
+- Managing API loading status
+- Providing context to child components
+- Tracking map instances across your app
+
+<Note>
+There should typically be only one `APIProvider` instance in your application, placed near the root of your component tree.
+</Note>
+
+## Basic Usage
+
+The only required prop is `apiKey`, which authenticates your application with Google Maps Platform:
+
+```tsx
+import {APIProvider, Map} from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={process.env.GOOGLE_MAPS_API_KEY}>
+      <Map
+        defaultCenter={{lat: 40.7128, lng: -74.0060}}
+        defaultZoom={12}
+      />
+    </APIProvider>
+  );
+}
+```
+
+## Key Props
+
+### apiKey (required)
+
+Your Google Maps Platform API key. [Create an API key](https://developers.google.com/maps/documentation/javascript/get-api-key) if you don't have one.
+
+```tsx
+<APIProvider apiKey="YOUR_API_KEY">
+  {/* your app */}
+</APIProvider>
+```
+
+### libraries
+
+Specify additional Google Maps libraries to load upfront. Libraries can also be loaded on-demand using the `useMapsLibrary` hook.
+
+```tsx
+<APIProvider
+  apiKey={API_KEY}
+  libraries={['places', 'geometry', 'drawing']}
+>
+  {/* your app */}
+</APIProvider>
+```
+
+Common libraries include:
+- `places` - Places API for autocomplete and place details
+- `geometry` - Geometry utilities for calculations
+- `drawing` - Drawing tools for shapes
+- `marker` - Advanced marker functionality
+
+### version
+
+Control which version of the Google Maps JavaScript API to load:
+
+```tsx
+<APIProvider
+  apiKey={API_KEY}
+  version="weekly"  // or "beta", "3.55", etc.
+>
+  {/* your app */}
+</APIProvider>
+```
+
+<Info>
+The default is `"weekly"`, which provides the latest stable features. See [versioning documentation](https://developers.google.com/maps/documentation/javascript/versions) for more details.
+</Info>
+
+### region and language
+
+Customize the map for specific regions and languages:
+
+```tsx
+<APIProvider
+  apiKey={API_KEY}
+  region="US"
+  language="en"
+>
+  {/* your app */}
+</APIProvider>
+```
+
+## Loading Status
+
+You can respond to API loading events:
+
+```tsx
+function App() {
+  const handleLoad = () => {
+    console.log('Google Maps API loaded');
+  };
+
+  const handleError = (error) => {
+    console.error('Failed to load Google Maps API:', error);
+  };
+
+  return (
+    <APIProvider
+      apiKey={API_KEY}
+      onLoad={handleLoad}
+      onError={handleError}
+    >
+      {/* your app */}
+    </APIProvider>
+  );
+}
+```
+
+Use the `useApiLoadingStatus` hook to check loading state within components:
+
+```tsx
+import {useApiLoadingStatus} from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const status = useApiLoadingStatus();
+
+  if (status === 'LOADING') return <div>Loading maps...</div>;
+  if (status === 'FAILED') return <div>Failed to load maps</div>;
+
+  return <div>Maps ready!</div>;
+}
+```
+
+## Context Provided
+
+The `APIProvider` creates a context that includes:
+
+- **status**: Current API loading status
+- **loadedLibraries**: Libraries that have been loaded
+- **importLibrary**: Function to load additional libraries on demand
+- **mapInstances**: Registry of map instances in the app
+
+<Note>
+You typically don't need to access this context directly. Use the provided hooks instead:
+- `useApiLoadingStatus()` for loading status
+- `useMapsLibrary()` to load libraries
+- `useMap()` to access map instances
+</Note>
+
+## Advanced Configuration
+
+### Firebase App Check
+
+Protect your API key with Firebase App Check:
+
+```tsx
+import {initializeApp} from 'firebase/app';
+import {getToken, initializeAppCheck, ReCaptchaEnterpriseProvider} from 'firebase/app-check';
+
+const app = initializeApp({/* config */});
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaEnterpriseProvider(RECAPTCHA_SITE_KEY),
+  isTokenAutoRefreshEnabled: true
+});
+
+function App() {
+  const fetchAppCheckToken = useCallback(
+    () => getToken(appCheck, false),
+    []
+  );
+
+  return (
+    <APIProvider
+      apiKey={API_KEY}
+      fetchAppCheckToken={fetchAppCheckToken}
+    >
+      {/* your app */}
+    </APIProvider>
+  );
+}
+```
+
+### Disable Usage Attribution
+
+Opt out of sending usage attribution IDs:
+
+```tsx
+<APIProvider
+  apiKey={API_KEY}
+  disableUsageAttribution={true}
+>
+  {/* your app */}
+</APIProvider>
+```
+
+## Important Notes
+
+<Warning>
+The Google Maps JavaScript API can only be loaded once per page. Props like `apiKey`, `version`, `region`, and `language` are only used on first render. Changing them later will have no effect.
+</Warning>
+
+<Info>
+If the Maps API is already loaded externally (via a script tag), the `APIProvider` will detect this and use the existing instance, ignoring the props you provide.
+</Info>
+
+## Next Steps
+
+- Learn about [Map components](/concepts/maps)
+- Understand [controlled vs uncontrolled components](/concepts/controlled-vs-uncontrolled)
+- Explore the [APIProvider API reference](/api/components/api-provider)

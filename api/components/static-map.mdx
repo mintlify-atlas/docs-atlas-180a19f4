@@ -1,0 +1,305 @@
+---
+title: StaticMap
+description: Component to display a static map image
+---
+
+# StaticMap
+
+The `StaticMap` component renders a static (non-interactive) map image using the [Google Maps Static API](https://developers.google.com/maps/documentation/maps-static/overview). This is useful for displaying maps without the overhead of the full JavaScript API.
+
+<Note>
+  Static maps don't require the `APIProvider` and don't load the JavaScript API, making them much lighter and faster.
+</Note>
+
+## Import
+
+```tsx
+import {StaticMap, createStaticMapsUrl} from '@vis.gl/react-google-maps';
+```
+
+## Usage
+
+```tsx
+import {StaticMap, createStaticMapsUrl} from '@vis.gl/react-google-maps';
+
+const App = () => {
+  const url = createStaticMapsUrl({
+    apiKey: process.env.GOOGLE_MAPS_API_KEY,
+    center: {lat: 37.7749, lng: -122.4194},
+    zoom: 12,
+    size: {width: 600, height: 400}
+  });
+  
+  return <StaticMap url={url} />;
+};
+```
+
+## Props
+
+### Required
+
+<ParamField path="url" type="string" required>
+  The URL for the static map image. Use `createStaticMapsUrl()` to generate this URL.
+  
+  ```tsx
+  const url = createStaticMapsUrl({...options});
+  <StaticMap url={url} />
+  ```
+</ParamField>
+
+### Optional
+
+<ParamField path="className" type="string">
+  CSS class name applied to the image element.
+  
+  ```tsx
+  <StaticMap url={url} className="map-image" />
+  ```
+</ParamField>
+
+## createStaticMapsUrl
+
+The `createStaticMapsUrl` function generates a properly formatted URL for the Google Maps Static API.
+
+### Parameters
+
+```tsx
+type StaticMapOptions = {
+  // Required
+  apiKey: string;
+  center: {lat: number; lng: number};
+  zoom: number;
+  size: {width: number; height: number};
+  
+  // Optional
+  scale?: 1 | 2;
+  format?: 'png' | 'png8' | 'png32' | 'gif' | 'jpg' | 'jpg-baseline';
+  maptype?: 'roadmap' | 'satellite' | 'terrain' | 'hybrid';
+  language?: string;
+  region?: string;
+  markers?: MarkerStyle[];
+  path?: PathStyle[];
+  visible?: string[];
+  style?: MapStyle[];
+  mapId?: string;
+};
+```
+
+<ParamField path="apiKey" type="string" required>
+  Your Google Maps Platform API Key.
+</ParamField>
+
+<ParamField path="center" type="{lat: number, lng: number}" required>
+  The center position of the map.
+</ParamField>
+
+<ParamField path="zoom" type="number" required>
+  The zoom level (0-21).
+</ParamField>
+
+<ParamField path="size" type="{width: number, height: number}" required>
+  The dimensions of the map image in pixels. Maximum 640x640 for free tier.
+</ParamField>
+
+<ParamField path="scale" type="1 | 2">
+  Scale for high-DPI displays. `2` doubles the pixel dimensions.
+  
+  Default: `1`
+</ParamField>
+
+<ParamField path="format" type="'png' | 'png8' | 'png32' | 'gif' | 'jpg' | 'jpg-baseline'">
+  Image format.
+  
+  Default: `'png'`
+</ParamField>
+
+<ParamField path="maptype" type="'roadmap' | 'satellite' | 'terrain' | 'hybrid'">
+  The map type.
+  
+  Default: `'roadmap'`
+</ParamField>
+
+<ParamField path="mapId" type="string">
+  A [Map ID](https://developers.google.com/maps/documentation/get-map-id) for custom styling.
+</ParamField>
+
+<ParamField path="language" type="string">
+  Language for map labels (e.g., `'en'`, `'es'`, `'fr'`).
+</ParamField>
+
+<ParamField path="region" type="string">
+  Region code to bias the map (e.g., `'US'`, `'GB'`).
+</ParamField>
+
+<ParamField path="markers" type="MarkerStyle[]">
+  Array of marker specifications to display on the map.
+</ParamField>
+
+<ParamField path="path" type="PathStyle[]">
+  Array of path/polyline specifications to draw on the map.
+</ParamField>
+
+<ParamField path="visible" type="string[]">
+  Array of locations that must be visible on the map.
+</ParamField>
+
+## Examples
+
+### Basic Static Map
+
+```tsx
+import {StaticMap, createStaticMapsUrl} from '@vis.gl/react-google-maps';
+
+function BasicStaticMap() {
+  const url = createStaticMapsUrl({
+    apiKey: process.env.GOOGLE_MAPS_API_KEY!,
+    center: {lat: 37.7749, lng: -122.4194},
+    zoom: 12,
+    size: {width: 600, height: 400}
+  });
+  
+  return <StaticMap url={url} />;
+}
+```
+
+### High-DPI Static Map
+
+```tsx
+const url = createStaticMapsUrl({
+  apiKey: API_KEY,
+  center: {lat: 37.7749, lng: -122.4194},
+  zoom: 12,
+  size: {width: 600, height: 400},
+  scale: 2, // Retina display
+  format: 'png'
+});
+
+<StaticMap url={url} />;
+```
+
+### With Markers
+
+```tsx
+const url = createStaticMapsUrl({
+  apiKey: API_KEY,
+  center: {lat: 37.7749, lng: -122.4194},
+  zoom: 12,
+  size: {width: 600, height: 400},
+  markers: [
+    {
+      location: {lat: 37.7749, lng: -122.4194},
+      color: 'red',
+      label: 'A'
+    },
+    {
+      location: {lat: 37.7849, lng: -122.4094},
+      color: 'blue',
+      label: 'B'
+    }
+  ]
+});
+
+<StaticMap url={url} />;
+```
+
+### Satellite View
+
+```tsx
+const url = createStaticMapsUrl({
+  apiKey: API_KEY,
+  center: {lat: 37.7749, lng: -122.4194},
+  zoom: 15,
+  size: {width: 600, height: 400},
+  maptype: 'satellite'
+});
+
+<StaticMap url={url} />;
+```
+
+### With Path
+
+```tsx
+const url = createStaticMapsUrl({
+  apiKey: API_KEY,
+  center: {lat: 37.7749, lng: -122.4194},
+  zoom: 13,
+  size: {width: 600, height: 400},
+  path: [
+    {
+      points: [
+        {lat: 37.7749, lng: -122.4194},
+        {lat: 37.7849, lng: -122.4094},
+        {lat: 37.7649, lng: -122.4294}
+      ],
+      color: '0xff0000',
+      weight: 5
+    }
+  ]
+});
+
+<StaticMap url={url} />;
+```
+
+### With Map ID (Custom Styling)
+
+```tsx
+const url = createStaticMapsUrl({
+  apiKey: API_KEY,
+  center: {lat: 37.7749, lng: -122.4194},
+  zoom: 12,
+  size: {width: 600, height: 400},
+  mapId: 'YOUR_MAP_ID' // Use your custom styled map
+});
+
+<StaticMap url={url} />;
+```
+
+### Responsive Static Map
+
+```tsx
+import {StaticMap, createStaticMapsUrl} from '@vis.gl/react-google-maps';
+
+function ResponsiveStaticMap() {
+  const url = createStaticMapsUrl({
+    apiKey: API_KEY,
+    center: {lat: 37.7749, lng: -122.4194},
+    zoom: 12,
+    size: {width: 600, height: 400}
+  });
+  
+  return (
+    <div style={{width: '100%', maxWidth: 600}}>
+      <StaticMap 
+        url={url}
+        className="responsive-map"
+      />
+    </div>
+  );
+}
+```
+
+## Use Cases
+
+Static maps are ideal for:
+
+- **Email notifications** - Embed maps in emails
+- **Print materials** - Generate maps for PDFs or documents  
+- **Server-side rendering** - Create maps without client-side JavaScript
+- **Low-bandwidth scenarios** - Lighter than interactive maps
+- **Preview images** - Show map thumbnails before loading interactive maps
+- **Social media sharing** - Generate Open Graph images with maps
+
+## Limitations
+
+- Maximum size of 640x640 pixels (free tier)
+- No interactivity (no zoom, pan, or click events)
+- Requires a separate API key configuration
+- Limited to 25,000 map loads per day (free tier)
+
+## Pricing
+
+Static maps use a different pricing structure than the JavaScript API. See the [Google Maps Static API pricing](https://developers.google.com/maps/documentation/maps-static/usage-and-billing) for details.
+
+## Source
+
+[View source on GitHub](https://github.com/visgl/react-google-maps/blob/main/src/components/static-map.tsx)

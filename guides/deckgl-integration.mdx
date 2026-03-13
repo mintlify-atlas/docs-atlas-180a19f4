@@ -1,0 +1,478 @@
+---
+title: Deck.gl Integration
+description: Learn how to integrate deck.gl layers with React Google Maps for advanced data visualization
+---
+
+Integrate [deck.gl](https://deck.gl) with React Google Maps to add powerful data visualization layers on top of your maps. Deck.gl provides GPU-accelerated rendering for large datasets.
+
+## Two Integration Approaches
+
+There are two ways to use deck.gl with React Google Maps:
+
+1. **DeckGL as parent** - Wrap the Map component with DeckGL for full camera synchronization
+2. **GoogleMapsOverlay** - Use deck.gl's overlay to render layers via the Maps API
+
+## Using DeckGL as Parent
+
+This approach gives deck.gl control over the camera and renders the Map as a child:
+
+<Steps>
+
+### Install Dependencies
+
+```bash
+npm install deck.gl @deck.gl/layers
+```
+
+### Import Required Components
+
+```tsx
+import { APIProvider, Map, limitTiltRange } from '@vis.gl/react-google-maps';
+import DeckGL from '@deck.gl/react';
+import { ScatterplotLayer } from '@deck.gl/layers';
+```
+
+### Set Up DeckGL with Map
+
+Wrap your Map component with DeckGL and configure camera synchronization:
+
+```tsx
+import { useState } from 'react';
+import { APIProvider, Map, limitTiltRange } from '@vis.gl/react-google-maps';
+import DeckGL from '@deck.gl/react';
+import { ScatterplotLayer } from '@deck.gl/layers';
+
+const INITIAL_VIEW_STATE = {
+  latitude: 37.8,
+  longitude: -122.4,
+  zoom: 11,
+  pitch: 0,
+  bearing: 0
+};
+
+const GOOGLE_MAPS_OPTIONS = {
+  mapId: '4f6dde3310be51d7',
+  disableDefaultUI: true,
+  gestureHandling: 'greedy',
+  clickableIcons: false
+};
+
+function DeckGLMapExample() {
+  const [layers] = useState([
+    new ScatterplotLayer({
+      id: 'scatterplot-layer',
+      data: [
+        { position: [-122.4, 37.8], size: 100, color: [255, 0, 0] },
+        { position: [-122.5, 37.9], size: 150, color: [0, 255, 0] }
+      ],
+      getPosition: d => d.position,
+      getRadius: d => d.size,
+      getFillColor: d => d.color,
+      radiusMinPixels: 3
+    })
+  ]);
+
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <DeckGL
+        initialViewState={INITIAL_VIEW_STATE}
+        controller={true}
+        layers={layers}
+        onViewStateChange={limitTiltRange}
+      >
+        <Map {...GOOGLE_MAPS_OPTIONS} />
+      </DeckGL>
+    </APIProvider>
+  );
+}
+```
+
+### Key Configuration
+
+<Note>
+- Always set `controller={true}` on DeckGL
+- Use `onViewStateChange={limitTiltRange}` for proper camera limits
+- Define `initialViewState` for the starting camera position
+</Note>
+
+</Steps>
+
+## Using GoogleMapsOverlay
+
+This approach uses deck.gl's WebGL overlay system to render layers directly into the map:
+
+<Steps>
+
+### Install Dependencies
+
+```bash
+npm install @deck.gl/google-maps @deck.gl/layers
+```
+
+### Create Overlay Component
+
+Create a reusable component to handle the deck.gl overlay:
+
+```tsx
+import { useMap } from '@vis.gl/react-google-maps';
+import { useEffect, useMemo } from 'react';
+import { GoogleMapsOverlay } from '@deck.gl/google-maps';
+import type { LayersList } from '@deck.gl/core';
+
+export type DeckGlOverlayProps = {
+  layers?: LayersList;
+};
+
+export const DeckGlOverlay = ({ layers }: DeckGlOverlayProps) => {
+  // Create overlay instance once
+  const deck = useMemo(() => new GoogleMapsOverlay({ interleaved: true }), []);
+
+  // Add overlay to map
+  const map = useMap();
+  useEffect(() => {
+    deck.setMap(map);
+    return () => deck.setMap(null);
+  }, [deck, map]);
+
+  // Update layers when they change
+  useEffect(() => {
+    deck.setProps({ layers });
+  }, [deck, layers]);
+
+  // No DOM rendered by this component
+  return null;
+};
+```
+
+### Use in Your Map
+
+Add the overlay component as a child of your Map:
+
+```tsx
+import { APIProvider, Map } from '@vis.gl/react-google-maps';
+import { GeoJsonLayer } from '@deck.gl/layers';
+import { DeckGlOverlay } from './deckgl-overlay';
+
+function MapWithDeckGL() {
+  const layers = [
+    new GeoJsonLayer({
+      id: 'geojson-layer',
+      data: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/bart.geo.json',
+      stroked: false,
+      filled: true,
+      extruded: true,
+      pointType: 'circle',
+      lineWidthScale: 20,
+      lineWidthMinPixels: 4,
+      getFillColor: [160, 160, 180, 200],
+      getLineColor: [0, 0, 0],
+      getPointRadius: 200,
+      getLineWidth: 1,
+      getElevation: 30
+    })
+  ];
+
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <Map
+        defaultCenter={{ lat: 37.74, lng: -122.4 }}
+        defaultZoom={11}
+        mapId={'4f6dde3310be51d7'}
+        gestureHandling={'greedy'}
+        disableDefaultUI={true}
+      >
+        <DeckGlOverlay layers={layers} />
+      </Map>
+    </APIProvider>
+  );
+}
+```
+
+</Steps>
+
+## Loading Data Dynamically
+
+Fetch and render data from an API:
+
+```tsx
+import { useEffect, useState } from 'react';
+import { APIProvider, Map } from '@vis.gl/react-google-maps';
+import { GeoJsonLayer } from '@deck.gl/layers';
+import { DeckGlOverlay } from './deckgl-overlay';
+import type { Feature, GeoJSON } from 'geojson';
+
+const DATA_URL = 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/bart.geo.json';
+
+function DynamicDataMap() {
+  const [data, setData] = useState<GeoJSON | null>(null);
+
+  useEffect(() => {
+    fetch(DATA_URL)
+      .then(res => res.json())
+      .then(data => setData(data as GeoJSON));
+  }, []);
+
+  const layers = data ? [
+    new GeoJsonLayer({
+      id: 'geojson-layer',
+      data,
+      stroked: false,
+      filled: true,
+      extruded: true,
+      pointType: 'circle',
+      lineWidthScale: 20,
+      lineWidthMinPixels: 4,
+      getFillColor: [160, 160, 180, 200],
+      getLineColor: (f: Feature) => {
+        const hex = f?.properties?.color;
+        if (!hex) return [0, 0, 0];
+        return hex.match(/[0-9a-f]{2}/g)!.map((x: string) => parseInt(x, 16));
+      },
+      getPointRadius: 200,
+      getLineWidth: 1,
+      getElevation: 30
+    })
+  ] : [];
+
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <Map
+        defaultCenter={{ lat: 37.74, lng: -122.4 }}
+        defaultZoom={11}
+        mapId={'4f6dde3310be51d7'}
+        gestureHandling={'greedy'}
+        disableDefaultUI={true}
+      >
+        <DeckGlOverlay layers={layers} />
+      </Map>
+    </APIProvider>
+  );
+}
+```
+
+## Common Deck.gl Layers
+
+### ScatterplotLayer
+
+Render points with customizable size and color:
+
+```tsx
+import { ScatterplotLayer } from '@deck.gl/layers';
+
+const layer = new ScatterplotLayer({
+  id: 'scatterplot',
+  data: points,
+  getPosition: d => [d.longitude, d.latitude],
+  getRadius: d => d.radius,
+  getFillColor: d => [255, 0, 0],
+  radiusMinPixels: 3,
+  radiusMaxPixels: 100
+});
+```
+
+### ArcLayer
+
+Visualize connections between points:
+
+```tsx
+import { ArcLayer } from '@deck.gl/layers';
+
+const layer = new ArcLayer({
+  id: 'arc-layer',
+  data: connections,
+  getSourcePosition: d => d.from,
+  getTargetPosition: d => d.to,
+  getSourceColor: [255, 0, 0],
+  getTargetColor: [0, 0, 255],
+  getWidth: 2
+});
+```
+
+### HexagonLayer
+
+Aggregate points into hexagonal bins:
+
+```tsx
+import { HexagonLayer } from '@deck.gl/aggregation-layers';
+
+const layer = new HexagonLayer({
+  id: 'hexagon-layer',
+  data: points,
+  getPosition: d => [d.longitude, d.latitude],
+  radius: 1000,
+  elevationScale: 50,
+  extruded: true,
+  coverage: 0.8
+});
+```
+
+### GeoJsonLayer
+
+Render GeoJSON features:
+
+```tsx
+import { GeoJsonLayer } from '@deck.gl/layers';
+
+const layer = new GeoJsonLayer({
+  id: 'geojson',
+  data: geojsonData,
+  filled: true,
+  stroked: true,
+  getFillColor: [160, 160, 180, 200],
+  getLineColor: [0, 0, 0],
+  getLineWidth: 2,
+  lineWidthMinPixels: 1
+});
+```
+
+## Camera Synchronization
+
+When using DeckGL as parent, camera synchronization is handled automatically. The `limitTiltRange` function ensures the camera tilt stays within acceptable limits:
+
+```tsx
+import { limitTiltRange } from '@vis.gl/react-google-maps';
+
+<DeckGL
+  initialViewState={INITIAL_VIEW_STATE}
+  controller={true}
+  layers={layers}
+  onViewStateChange={limitTiltRange}  // Limits tilt to valid range
+>
+  <Map {...mapOptions} />
+</DeckGL>
+```
+
+## Interleaved Rendering
+
+The `interleaved: true` option allows deck.gl layers to render between Google Maps layers:
+
+```tsx
+const deck = useMemo(() => new GoogleMapsOverlay({
+  interleaved: true  // Enables proper z-ordering
+}), []);
+```
+
+<Note>
+Interleaved rendering ensures deck.gl layers appear correctly relative to Google Maps features like buildings and terrain.
+</Note>
+
+## Performance Optimization
+
+<Warning>
+Deck.gl can be resource-intensive with large datasets. Follow these optimization tips:
+</Warning>
+
+### Limit Data Points
+
+```tsx
+// Filter or sample large datasets
+const sampledData = largeDataset.filter((_, i) => i % 10 === 0);
+```
+
+### Use Aggregation Layers
+
+```tsx
+// Instead of rendering 100k points
+import { HexagonLayer } from '@deck.gl/aggregation-layers';
+
+const layer = new HexagonLayer({
+  id: 'hexagons',
+  data: points,
+  getPosition: d => [d.lng, d.lat],
+  radius: 1000,
+  elevationScale: 50
+});
+```
+
+### Memoize Layers
+
+```tsx
+import { useMemo } from 'react';
+
+const layers = useMemo(() => [
+  new ScatterplotLayer({ id: 'points', data, /* ... */ })
+], [data]);
+```
+
+## Complete Example
+
+Here's a full example combining multiple concepts:
+
+```tsx
+import { useState, useEffect, useMemo } from 'react';
+import { APIProvider, Map } from '@vis.gl/react-google-maps';
+import { GeoJsonLayer, ScatterplotLayer } from '@deck.gl/layers';
+import { DeckGlOverlay } from './deckgl-overlay';
+
+function CompleteDeckGLExample() {
+  const [geojsonData, setGeojsonData] = useState(null);
+  const [points, setPoints] = useState([]);
+
+  useEffect(() => {
+    // Load GeoJSON data
+    fetch('https://example.com/data.geojson')
+      .then(res => res.json())
+      .then(setGeojsonData);
+
+    // Generate random points
+    const randomPoints = Array.from({ length: 1000 }, () => ({
+      position: [-122.4 + Math.random() * 0.5, 37.7 + Math.random() * 0.5],
+      size: Math.random() * 100,
+      color: [Math.random() * 255, Math.random() * 255, Math.random() * 255]
+    }));
+    setPoints(randomPoints);
+  }, []);
+
+  const layers = useMemo(() => [
+    new GeoJsonLayer({
+      id: 'geojson',
+      data: geojsonData,
+      filled: true,
+      extruded: true,
+      getFillColor: [160, 160, 180, 200],
+      getElevation: 30
+    }),
+    new ScatterplotLayer({
+      id: 'points',
+      data: points,
+      getPosition: d => d.position,
+      getRadius: d => d.size,
+      getFillColor: d => d.color,
+      radiusMinPixels: 2,
+      opacity: 0.8
+    })
+  ], [geojsonData, points]);
+
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <Map
+        defaultCenter={{ lat: 37.74, lng: -122.4 }}
+        defaultZoom={11}
+        mapId={'4f6dde3310be51d7'}
+        gestureHandling={'greedy'}
+        disableDefaultUI
+      >
+        <DeckGlOverlay layers={layers} />
+      </Map>
+    </APIProvider>
+  );
+}
+```
+
+## When to Use Each Approach
+
+### Use DeckGL as Parent When:
+- You need full camera control from deck.gl
+- You want deck.gl to handle all interactions
+- You're primarily visualizing data with minimal map interaction
+
+### Use GoogleMapsOverlay When:
+- You want to preserve Google Maps controls and UI
+- Users need to interact with both map features and deck.gl layers
+- You want easier integration with existing Map components
+
+## Related Resources
+
+- [Deck.gl Documentation](https://deck.gl/docs)
+- [Deck.gl Layer Catalog](https://deck.gl/docs/api-reference/layers)
+- [DeckGL Overlay Example](https://github.com/visgl/react-google-maps/tree/main/examples/deckgl-overlay)

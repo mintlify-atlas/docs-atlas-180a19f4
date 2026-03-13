@@ -1,0 +1,403 @@
+---
+title: Markers
+description: Adding markers to your map with the Marker and AdvancedMarker components
+---
+
+Markers indicate locations on a map. React Google Maps provides two components for adding markers: the classic `Marker` and the newer `AdvancedMarker`.
+
+## Marker vs AdvancedMarker
+
+<Tabs>
+  <Tab title="AdvancedMarker (Recommended)">
+    The `AdvancedMarker` component uses the newer [Advanced Markers API](https://developers.google.com/maps/documentation/javascript/advanced-markers) and provides:
+
+    - Better performance with WebGL rendering
+    - Fully customizable HTML content
+    - Built-in collision management
+    - 3D positioning with altitude
+    - Smooth animations
+
+    **Requirements:**
+    - A Map ID configured with vector maps
+    - The `marker` library loaded (optional for better performance)
+
+    ```tsx
+    <Map mapId="YOUR_MAP_ID">
+      <AdvancedMarker position={{lat: 40.7128, lng: -74.0060}} />
+    </Map>
+    ```
+  </Tab>
+  
+  <Tab title="Marker (Classic)">
+    The `Marker` component uses the classic [google.maps.Marker](https://developers.google.com/maps/documentation/javascript/reference/marker#Marker) and provides:
+
+    - Works without a Map ID
+    - Supports raster and vector maps
+    - Simple icon customization
+    - Broader browser compatibility
+
+    **Use when:**
+    - You don't have a Map ID
+    - You need raster map support
+    - You're migrating existing code
+
+    ```tsx
+    <Map defaultCenter={{lat: 40.7128, lng: -74.0060}} defaultZoom={12}>
+      <Marker position={{lat: 40.7128, lng: -74.0060}} />
+    </Map>
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+For new projects, use `AdvancedMarker` whenever possible. It provides better performance and more customization options.
+</Info>
+
+## Basic Markers
+
+### Default Marker
+
+Both components render a default red pin when no customization is provided:
+
+```tsx
+import {APIProvider, Map, AdvancedMarker} from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={process.env.GOOGLE_MAPS_API_KEY}>
+      <Map
+        mapId="YOUR_MAP_ID"
+        defaultCenter={{lat: 40.7128, lng: -74.0060}}
+        defaultZoom={12}
+      >
+        <AdvancedMarker position={{lat: 40.7128, lng: -74.0060}} />
+      </Map>
+    </APIProvider>
+  );
+}
+```
+
+### Multiple Markers
+
+Render multiple markers by mapping over data:
+
+```tsx
+const locations = [
+  {key: 'operaHouse', location: {lat: -33.8567844, lng: 151.213108}},
+  {key: 'tarongaZoo', location: {lat: -33.8472767, lng: 151.2188164}},
+  {key: 'manlyBeach', location: {lat: -33.8209738, lng: 151.2563253}},
+];
+
+<Map
+  mapId="YOUR_MAP_ID"
+  defaultCenter={{lat: -33.860664, lng: 151.208138}}
+  defaultZoom={12}
+>
+  {locations.map(({key, location}) => (
+    <AdvancedMarker key={key} position={location} />
+  ))}
+</Map>
+```
+
+## Customizing Markers
+
+### Using the Pin Component
+
+Customize the default pin with the `Pin` component:
+
+```tsx
+import {AdvancedMarker, Pin} from '@vis.gl/react-google-maps';
+
+<AdvancedMarker position={{lat: 40.7128, lng: -74.0060}}>
+  <Pin
+    background="#22ccff"
+    borderColor="#1e89a1"
+    glyphColor="#0f677a"
+  />
+</AdvancedMarker>
+```
+
+### Custom Pin Glyph
+
+Replace the pin's center icon with custom content:
+
+```tsx
+<AdvancedMarker position={{lat: 40.7128, lng: -74.0060}}>
+  <Pin background="#22ccff" borderColor="#1e89a1" scale={1.4}>
+    <span style={{fontSize: '20px'}}>🏢</span>
+  </Pin>
+</AdvancedMarker>
+```
+
+### Fully Custom HTML
+
+Provide any HTML/React content as the marker:
+
+```tsx
+<AdvancedMarker position={{lat: 40.7128, lng: -74.0060}}>
+  <div style={{
+    width: 40,
+    height: 40,
+    borderRadius: '50%',
+    background: '#1dbe80',
+    border: '3px solid #0e6443',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'white',
+    fontWeight: 'bold'
+  }}>
+    A
+  </div>
+</AdvancedMarker>
+```
+
+### Using Images
+
+Use images as custom markers:
+
+```tsx
+<AdvancedMarker position={{lat: 40.7128, lng: -74.0060}}>
+  <img
+    src="/marker-icon.png"
+    width={32}
+    height={32}
+    alt="Custom marker"
+  />
+</AdvancedMarker>
+```
+
+### Classic Marker Icons
+
+For the classic `Marker`, use the `icon` prop:
+
+```tsx
+<Marker
+  position={{lat: 40.7128, lng: -74.0060}}
+  icon={{
+    url: '/marker-icon.png',
+    scaledSize: new google.maps.Size(40, 40)
+  }}
+/>
+```
+
+## Marker Interaction
+
+### Click Events
+
+```tsx
+function InteractiveMarker() {
+  const handleClick = () => {
+    alert('Marker clicked!');
+  };
+
+  return (
+    <AdvancedMarker
+      position={{lat: 40.7128, lng: -74.0060}}
+      onClick={handleClick}
+    />
+  );
+}
+```
+
+### Hover Events
+
+```tsx
+function HoverableMarker() {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <AdvancedMarker
+      position={{lat: 40.7128, lng: -74.0060}}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Pin
+        background={hovered ? '#22ccff' : '#ff0000'}
+        borderColor={hovered ? '#1e89a1' : '#cc0000'}
+      />
+    </AdvancedMarker>
+  );
+}
+```
+
+### Draggable Markers
+
+```tsx
+function DraggableMarker() {
+  const [position, setPosition] = useState({lat: 40.7128, lng: -74.0060});
+
+  const handleDragEnd = (event) => {
+    const newPos = event.detail.latLng;
+    setPosition(newPos);
+    console.log('New position:', newPos);
+  };
+
+  return (
+    <AdvancedMarker
+      position={position}
+      draggable={true}
+      onDragEnd={handleDragEnd}
+    />
+  );
+}
+```
+
+## 3D Markers
+
+`AdvancedMarker` supports altitude for 3D positioning:
+
+```tsx
+<Map
+  mapId="YOUR_MAP_ID"
+  defaultCenter={{lat: 40.7128, lng: -74.0060}}
+  defaultZoom={18}
+  tilt={45}
+  heading={0}
+>
+  <AdvancedMarker
+    position={{
+      lat: 40.7128,
+      lng: -74.0060,
+      altitude: 100  // 100 meters above ground
+    }}
+  />
+</Map>
+```
+
+<Note>
+Altitude requires tilt to be enabled (zoom ≥ 10) and works best with zoom levels above 15.
+</Note>
+
+## Marker Anchoring
+
+By default, markers are anchored at the bottom-center. Customize the anchor point:
+
+```tsx
+import {AdvancedMarker, AdvancedMarkerAnchorPoint} from '@vis.gl/react-google-maps';
+
+// Using predefined anchor points
+<AdvancedMarker
+  position={{lat: 40.7128, lng: -74.0060}}
+  anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
+>
+  <div style={{width: 40, height: 40, background: 'red'}} />
+</AdvancedMarker>
+
+// Using anchorLeft and anchorTop (more precise)
+<AdvancedMarker
+  position={{lat: 40.7128, lng: -74.0060}}
+  anchorLeft="-50%"
+  anchorTop="-50%"
+>
+  <div style={{width: 40, height: 40, background: 'blue'}} />
+</AdvancedMarker>
+```
+
+## Collision Management
+
+Control how markers behave when they overlap:
+
+```tsx
+import {AdvancedMarker, CollisionBehavior} from '@vis.gl/react-google-maps';
+
+// Always show, hide others if needed
+<AdvancedMarker
+  position={{lat: 40.7128, lng: -74.0060}}
+  collisionBehavior={CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL}
+  zIndex={100}
+/>
+
+// Hide if colliding with higher priority markers
+<AdvancedMarker
+  position={{lat: 40.7129, lng: -74.0061}}
+  collisionBehavior={CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY}
+  zIndex={50}
+/>
+```
+
+Options:
+- `REQUIRED` - Always visible, may overlap others
+- `REQUIRED_AND_HIDES_OPTIONAL` - Always visible, hides optional markers
+- `OPTIONAL_AND_HIDES_LOWER_PRIORITY` - May hide if lower priority
+
+## Marker with InfoWindow
+
+Combine markers with info windows:
+
+```tsx
+import {AdvancedMarker, InfoWindow, useAdvancedMarkerRef} from '@vis.gl/react-google-maps';
+
+function MarkerWithInfo() {
+  const [markerRef, marker] = useAdvancedMarkerRef();
+  const [infoOpen, setInfoOpen] = useState(false);
+
+  return (
+    <>
+      <AdvancedMarker
+        ref={markerRef}
+        position={{lat: 40.7128, lng: -74.0060}}
+        onClick={() => setInfoOpen(true)}
+      />
+      {infoOpen && (
+        <InfoWindow
+          anchor={marker}
+          onClose={() => setInfoOpen(false)}
+        >
+          <div>
+            <h3>New York City</h3>
+            <p>The city that never sleeps</p>
+          </div>
+        </InfoWindow>
+      )}
+    </>
+  );
+}
+```
+
+## Performance Tips
+
+<Tabs>
+  <Tab title="Optimize Renders">
+    Use React's memoization to prevent unnecessary re-renders:
+
+    ```tsx
+    const MemoizedMarker = memo(({position, onClick}) => (
+      <AdvancedMarker position={position} onClick={onClick} />
+    ));
+    ```
+  </Tab>
+  
+  <Tab title="Marker Clustering">
+    For large datasets, use marker clustering:
+
+    ```tsx
+    import {MarkerClusterer} from '@googlemaps/markerclusterer';
+    import {useMap} from '@vis.gl/react-google-maps';
+
+    function ClusteredMarkers({points}) {
+      const map = useMap();
+      // Implement clustering logic
+      // See clustering examples for complete implementation
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Collision Behavior">
+    Use collision behavior to hide less important markers:
+
+    ```tsx
+    <AdvancedMarker
+      position={position}
+      collisionBehavior={CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY}
+    />
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+- Explore [AdvancedMarker API reference](/api/components/advanced-marker)
+- Learn about [Marker API reference](/api/components/marker)
+- See [Pin component](/api/components/pin) for customization options
+- Check out [marker examples](https://visgl.github.io/react-google-maps/examples/markers-and-infowindows)

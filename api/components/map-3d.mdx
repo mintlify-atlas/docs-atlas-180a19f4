@@ -1,0 +1,213 @@
+---
+title: Map3D
+description: Component to render a 3D Google Map
+---
+
+# Map3D
+
+The `Map3D` component renders a 3D Google Map using photorealistic 3D tiles. It must be placed inside an [`APIProvider`](/api/components/api-provider) component.
+
+## Import
+
+```tsx
+import {Map3D, MapMode} from '@vis.gl/react-google-maps';
+```
+
+## Usage
+
+```tsx
+import {APIProvider, Map3D, MapMode} from '@vis.gl/react-google-maps';
+
+const App = () => (
+  <APIProvider apiKey={process.env.GOOGLE_MAPS_API_KEY}>
+    <Map3D
+      mode={MapMode.HYBRID}
+      defaultCenter={{lat: 37.7749, lng: -122.4194, altitude: 1000}}
+      defaultRange={5000}
+      defaultHeading={0}
+      defaultTilt={45}
+      style={{width: '100vw', height: '100vh'}}
+    />
+  </APIProvider>
+);
+```
+
+## Props
+
+The `Map3D` component extends [`google.maps.maps3d.Map3DElementOptions`](https://developers.google.com/maps/documentation/javascript/reference/3d-map#Map3DElementOptions).
+
+### Required
+
+<ParamField path="mode" type="MapMode" required>
+  The map rendering mode. Import `MapMode` from `@vis.gl/react-google-maps`.
+  
+  - `MapMode.HYBRID`: Satellite imagery with street overlay
+  - `MapMode.SATELLITE`: Satellite or photorealistic imagery only
+  
+  ```tsx
+  import {MapMode} from '@vis.gl/react-google-maps';
+  
+  <Map3D mode={MapMode.HYBRID} />
+  ```
+</ParamField>
+
+### Camera Props
+
+<ParamField path="center" type="google.maps.LatLngAltitude | google.maps.LatLngAltitudeLiteral">
+  The center position including altitude. Use for controlled mode.
+  
+  ```tsx
+  <Map3D 
+    center={{lat: 37.7749, lng: -122.4194, altitude: 1000}}
+    mode={MapMode.HYBRID}
+  />
+  ```
+</ParamField>
+
+<ParamField path="defaultCenter" type="google.maps.LatLngAltitudeLiteral">
+  The initial center position. Use for uncontrolled mode.
+</ParamField>
+
+<ParamField path="heading" type="number">
+  The camera heading in degrees (0-360), measured clockwise from North.
+</ParamField>
+
+<ParamField path="defaultHeading" type="number">
+  The initial heading. Use for uncontrolled mode.
+</ParamField>
+
+<ParamField path="tilt" type="number">
+  The camera tilt angle in degrees (0-90).
+</ParamField>
+
+<ParamField path="defaultTilt" type="number">
+  The initial tilt. Use for uncontrolled mode.
+</ParamField>
+
+<ParamField path="range" type="number">
+  The distance from the camera to the target point in meters.
+</ParamField>
+
+<ParamField path="defaultRange" type="number">
+  The initial range. Use for uncontrolled mode.
+</ParamField>
+
+<ParamField path="roll" type="number">
+  The camera roll angle in degrees.
+</ParamField>
+
+<ParamField path="defaultRoll" type="number">
+  The initial roll. Use for uncontrolled mode.
+</ParamField>
+
+### Display Props
+
+<ParamField path="id" type="string">
+  Unique identifier for this map. Required when using multiple 3D maps in the same `APIProvider` context.
+</ParamField>
+
+<ParamField path="style" type="React.CSSProperties">
+  Additional CSS styles for the map container. Default: `{width: '100%', height: '100%'}`
+</ParamField>
+
+<ParamField path="className" type="string">
+  CSS class name for the map container.
+</ParamField>
+
+### Behavior Props
+
+<ParamField path="gestureHandling" type="GestureHandling">
+  How gesture events are handled. Import `GestureHandling` from `@vis.gl/react-google-maps`.
+  
+  - `GestureHandling.AUTO`: Automatic (default)
+  - `GestureHandling.COOPERATIVE`: Requires modifier keys or two-finger gestures
+  - `GestureHandling.GREEDY`: Map captures all gestures
+  
+  ```tsx
+  import {GestureHandling} from '@vis.gl/react-google-maps';
+  
+  <Map3D gestureHandling={GestureHandling.COOPERATIVE} />
+  ```
+</ParamField>
+
+## Events
+
+<ParamField path="onGmpClick" type="(event: Map3DClickEvent) => void">
+  Fired when the map is clicked. Event detail includes `position`.
+</ParamField>
+
+<ParamField path="onCameraChanged" type="(event: Map3DCameraChangedEvent) => void">
+  Fired when the camera position changes. Event detail includes camera parameters.
+</ParamField>
+
+<ParamField path="onGmpSteadyChange" type="(event: Map3DSteadyChangeEvent) => void">
+  Fired when the map finishes moving or animating.
+</ParamField>
+
+## Imperative API
+
+Access the Map3D instance and animation methods using a ref:
+
+```tsx
+import {useRef} from 'react';
+import {Map3D, Map3DRef} from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const mapRef = useRef<Map3DRef>(null);
+  
+  const flyToSanFrancisco = () => {
+    mapRef.current?.flyCameraTo({
+      endCamera: {
+        center: {lat: 37.7749, lng: -122.4194, altitude: 1000},
+        range: 5000
+      },
+      durationMillis: 3000
+    });
+  };
+  
+  return <Map3D ref={mapRef} mode={MapMode.HYBRID} />;
+}
+```
+
+### Ref Methods
+
+<ResponseField name="flyCameraTo" type="(options: google.maps.maps3d.FlyToAnimationOptions) => void">
+  Animates the camera to a destination.
+</ResponseField>
+
+<ResponseField name="flyCameraAround" type="(options: google.maps.maps3d.FlyAroundAnimationOptions) => void">
+  Animates the camera around a center point.
+</ResponseField>
+
+<ResponseField name="stopCameraAnimation" type="() => void">
+  Stops any ongoing camera animation.
+</ResponseField>
+
+## Hooks
+
+Use the [`useMap3D()`](/api/hooks/use-map-3d) hook to access the map instance:
+
+```tsx
+import {useMap3D} from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const map3d = useMap3D();
+  
+  useEffect(() => {
+    if (map3d) {
+      console.log('Map3D is ready');
+    }
+  }, [map3d]);
+}
+```
+
+## Child Components
+
+The following components can be used as children of `Map3D`:
+
+- [`<Marker3D>`](/api/components/marker-3d) - 3D markers
+- [`<Popover3D>`](/api/components/popover-3d) - Info windows for 3D maps
+
+## Source
+
+[View source on GitHub](https://github.com/visgl/react-google-maps/blob/main/src/components/map-3d/index.tsx)

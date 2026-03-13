@@ -1,0 +1,293 @@
+---
+title: Map
+description: Component to render a Google Map
+---
+
+# Map
+
+The `Map` component renders a Google Map. It must be placed inside an [`APIProvider`](/api/components/api-provider) component.
+
+## Import
+
+```tsx
+import {Map} from '@vis.gl/react-google-maps';
+```
+
+## Usage
+
+```tsx
+import {APIProvider, Map} from '@vis.gl/react-google-maps';
+
+const App = () => (
+  <APIProvider apiKey={process.env.GOOGLE_MAPS_API_KEY}>
+    <Map 
+      defaultCenter={{lat: 37.7749, lng: -122.4194}} 
+      defaultZoom={12}
+      style={{width: '100vw', height: '100vh'}}
+    />
+  </APIProvider>
+);
+```
+
+### Controlled Map
+
+```tsx
+import {useState, useCallback} from 'react';
+import {Map, MapCameraChangedEvent} from '@vis.gl/react-google-maps';
+
+const ControlledMap = () => {
+  const [camera, setCamera] = useState({
+    center: {lat: 37.7749, lng: -122.4194},
+    zoom: 12
+  });
+
+  const handleCameraChange = useCallback((ev: MapCameraChangedEvent) => {
+    setCamera(ev.detail);
+  }, []);
+
+  return (
+    <Map 
+      {...camera}
+      onCameraChanged={handleCameraChange}
+    />
+  );
+};
+```
+
+## Props
+
+The `Map` component extends [`google.maps.MapOptions`](https://developers.google.com/maps/documentation/javascript/reference/map#MapOptions) and accepts all standard map options as props.
+
+### Camera Props
+
+<ParamField path="center" type="google.maps.LatLngLiteral">
+  The center position of the map. Use this for controlled mode.
+  
+  ```tsx
+  <Map center={{lat: 37.7749, lng: -122.4194}} zoom={12} />
+  ```
+</ParamField>
+
+<ParamField path="defaultCenter" type="google.maps.LatLngLiteral">
+  The initial center position. Use this for uncontrolled mode.
+</ParamField>
+
+<ParamField path="zoom" type="number">
+  The zoom level (0-22). Higher values show more detail. Use this for controlled mode.
+  
+  - 1: World
+  - 5: Continent  
+  - 10: City
+  - 15: Streets
+  - 20: Buildings
+</ParamField>
+
+<ParamField path="defaultZoom" type="number">
+  The initial zoom level. Use this for uncontrolled mode.
+</ParamField>
+
+<ParamField path="heading" type="number">
+  The heading in degrees, measured clockwise from North. Use this for controlled mode.
+</ParamField>
+
+<ParamField path="defaultHeading" type="number">
+  The initial heading. Use this for uncontrolled mode.
+</ParamField>
+
+<ParamField path="tilt" type="number">
+  The tilt angle in degrees (0-67.5). Only works with vector maps. Use this for controlled mode.
+</ParamField>
+
+<ParamField path="defaultTilt" type="number">
+  The initial tilt. Use this for uncontrolled mode.
+</ParamField>
+
+<ParamField path="defaultBounds" type="google.maps.LatLngBoundsLiteral & {padding?: number | google.maps.Padding}">
+  Alternative to `defaultCenter`/`defaultZoom`. Fits the map to show this geographic region.
+  
+  ```tsx
+  <Map defaultBounds={{
+    north: 37.8,
+    south: 37.7,
+    east: -122.3,
+    west: -122.5,
+    padding: 50
+  }} />
+  ```
+</ParamField>
+
+### Display Props
+
+<ParamField path="mapId" type="string">
+  A [Map ID](https://developers.google.com/maps/documentation/get-map-id) for cloud-based map styling.
+  
+  **Note:** Changing this prop recreates the map instance and incurs additional costs.
+</ParamField>
+
+<ParamField path="colorScheme" type="ColorScheme">
+  The color scheme: `'LIGHT'`, `'DARK'`, or `'FOLLOW_SYSTEM'`.
+  
+  ```tsx
+  import {ColorScheme} from '@vis.gl/react-google-maps';
+  
+  <Map colorScheme={ColorScheme.DARK} />
+  ```
+  
+  **Note:** Changing this prop recreates the map instance.
+</ParamField>
+
+<ParamField path="renderingType" type="RenderingType">
+  The rendering type: `'VECTOR'` or `'RASTER'`.
+  
+  ```tsx
+  import {RenderingType} from '@vis.gl/react-google-maps';
+  
+  <Map renderingType={RenderingType.VECTOR} />
+  ```
+  
+  **Note:** Changing this prop recreates the map instance.
+</ParamField>
+
+<ParamField path="style" type="React.CSSProperties">
+  Additional CSS styles for the map container. Default: `{width: '100%', height: '100%'}`
+</ParamField>
+
+<ParamField path="className" type="string">
+  CSS class name for the map container.
+</ParamField>
+
+### Behavior Props
+
+<ParamField path="id" type="string">
+  Unique identifier for this map. Required when using multiple maps in the same `APIProvider` context.
+  
+  ```tsx
+  const map1 = useMap('map1');
+  const map2 = useMap('map2');
+  
+  <Map id="map1" />
+  <Map id="map2" />
+  ```
+</ParamField>
+
+<ParamField path="controlled" type="boolean">
+  Enables externally controlled mode. Disables all user interactions and strictly enforces camera props.
+  
+  Default: `false`
+</ParamField>
+
+<ParamField path="reuseMaps" type="boolean">
+  Enable map instance caching. When enabled, maps with the same `mapId`, `colorScheme`, and `renderingType` will be reused instead of creating new instances.
+  
+  Default: `false`
+</ParamField>
+
+<ParamField path="gestureHandling" type="string">
+  How the map handles gestures: `'cooperative'`, `'greedy'`, `'none'`, or `'auto'`.
+</ParamField>
+
+<ParamField path="keyboardShortcuts" type="boolean">
+  Whether keyboard shortcuts are enabled.
+</ParamField>
+
+### Additional Options
+
+<ParamField path="disableDefaultUI" type="boolean">
+  Disables all default UI controls.
+</ParamField>
+
+<ParamField path="mapTypeId" type="string">
+  The map type: `'roadmap'`, `'satellite'`, `'hybrid'`, or `'terrain'`.
+</ParamField>
+
+<ParamField path="minZoom" type="number">
+  Minimum zoom level.
+</ParamField>
+
+<ParamField path="maxZoom" type="number">
+  Maximum zoom level.
+</ParamField>
+
+<ParamField path="restriction" type="google.maps.MapRestriction">
+  Restricts the map to a specific geographic region.
+</ParamField>
+
+<ParamField path="internalUsageAttributionIds" type="string[]">
+  Custom usage attribution IDs for this map instance.
+</ParamField>
+
+## Events
+
+All events provide a `MapEvent` or `MapCameraChangedEvent` or `MapMouseEvent` object.
+
+<ParamField path="onCameraChanged" type="(event: MapCameraChangedEvent) => void">
+  Fired when the camera position changes. Event detail includes `center`, `zoom`, `heading`, `tilt`, and `bounds`.
+</ParamField>
+
+<ParamField path="onClick" type="(event: MapMouseEvent) => void">
+  Fired when the map is clicked. Event detail includes `latLng` and `placeId`.
+</ParamField>
+
+<ParamField path="onDrag" type="(event: MapEvent) => void">
+  Fired repeatedly while the user drags the map.
+</ParamField>
+
+<ParamField path="onDragStart" type="(event: MapEvent) => void">
+  Fired when the user starts dragging the map.
+</ParamField>
+
+<ParamField path="onDragEnd" type="(event: MapEvent) => void">
+  Fired when the user stops dragging the map.
+</ParamField>
+
+<ParamField path="onIdle" type="(event: MapEvent) => void">
+  Fired when the map becomes idle after panning or zooming.
+</ParamField>
+
+<ParamField path="onZoomChanged" type="(event: MapCameraChangedEvent) => void">
+  Fired when the zoom level changes.
+</ParamField>
+
+<ParamField path="onCenterChanged" type="(event: MapCameraChangedEvent) => void">
+  Fired when the center position changes.
+</ParamField>
+
+<ParamField path="onHeadingChanged" type="(event: MapCameraChangedEvent) => void">
+  Fired when the heading changes.
+</ParamField>
+
+<ParamField path="onTiltChanged" type="(event: MapCameraChangedEvent) => void">
+  Fired when the tilt changes.
+</ParamField>
+
+See the [full list of Map events](https://developers.google.com/maps/documentation/javascript/reference/map#Map-Events) in the Google Maps documentation.
+
+## Controlled vs Uncontrolled
+
+The Map component supports both controlled and uncontrolled modes:
+
+- **Uncontrolled**: Use `defaultCenter`, `defaultZoom`, etc. The map manages its own state.
+- **Controlled**: Use `center`, `zoom`, etc. with `onCameraChanged` to control state explicitly.
+- **Mixed**: You can mix controlled and uncontrolled props (e.g., control zoom but not center).
+
+## Hooks
+
+Use the [`useMap()`](/api/hooks/use-map) hook to access the map instance:
+
+```tsx
+import {useMap} from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (map) {
+      map.panTo({lat: 37.7749, lng: -122.4194});
+    }
+  }, [map]);
+}
+```
+
+## Source
+
+[View source on GitHub](https://github.com/visgl/react-google-maps/blob/main/src/components/map/index.tsx)

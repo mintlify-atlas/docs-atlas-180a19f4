@@ -1,0 +1,574 @@
+---
+title: Migrating from @googlemaps/react-wrapper
+description: Learn how to migrate from @googlemaps/react-wrapper to @vis.gl/react-google-maps
+---
+
+If you're currently using [`@googlemaps/react-wrapper`](https://www.npmjs.com/package/@googlemaps/react-wrapper), you can migrate to `@vis.gl/react-google-maps` for better React integration, more components, and improved developer experience.
+
+## Key Differences
+
+The main difference between the two libraries is how they handle API loading:
+
+- **@googlemaps/react-wrapper**: Renders children only after the API loads
+- **@vis.gl/react-google-maps**: Always renders children, uses hooks to handle loading state
+
+### Wrapper Component Behavior
+
+```tsx
+// @googlemaps/react-wrapper
+<Wrapper apiKey={apiKey}>
+  {/* Children render AFTER API loads */}
+  <Map />
+</Wrapper>
+
+// @vis.gl/react-google-maps
+<APIProvider apiKey={apiKey}>
+  {/* Children render IMMEDIATELY, use hooks for loading state */}
+  <Map />
+</APIProvider>
+```
+
+## Drop-in Replacement
+
+You can create a compatible `Wrapper` component as a drop-in replacement:
+
+```tsx filename="components/wrapper.tsx"
+import React, {
+  FunctionComponent,
+  PropsWithChildren,
+  ReactNode,
+  useEffect
+} from 'react';
+
+import {
+  APILoadingStatus,
+  APIProvider,
+  APIProviderProps,
+  useApiLoadingStatus
+} from '@vis.gl/react-google-maps';
+
+const STATUS_MAP = {
+  [APILoadingStatus.LOADING]: 'LOADING',
+  [APILoadingStatus.LOADED]: 'SUCCESS',
+  [APILoadingStatus.FAILED]: 'FAILURE'
+} as const;
+
+type WrapperProps = PropsWithChildren<
+  {
+    apiKey: string;
+    callback?: (status: string) => void;
+    render?: (status: string) => ReactNode;
+  } & APIProviderProps
+>;
+
+export const Wrapper: FunctionComponent<WrapperProps> = ({
+  apiKey,
+  children,
+  render,
+  callback,
+  ...apiProps
+}) => {
+  return (
+    <APIProvider apiKey={apiKey} {...apiProps}>
+      <InnerWrapper callback={callback} render={render}>
+        {children}
+      </InnerWrapper>
+    </APIProvider>
+  );
+};
+
+const InnerWrapper = ({
+  callback,
+  render,
+  children
+}: PropsWithChildren<Omit<WrapperProps, 'apiKey'>>) => {
+  const status = useApiLoadingStatus();
+  const mappedStatus = STATUS_MAP[status] ?? 'LOADING';
+
+  useEffect(() => {
+    if (callback) callback(mappedStatus);
+  }, [callback, mappedStatus]);
+
+  if (status === APILoadingStatus.LOADED) return children;
+  if (render) return render(mappedStatus);
+
+  return <></>;
+};
+```
+
+## Migration Steps
+
+<Steps>
+
+### Install the New Library
+
+```bash
+npm uninstall @googlemaps/react-wrapper
+npm install @vis.gl/react-google-maps
+```
+
+### Update Imports
+
+Replace wrapper imports with APIProvider:
+
+```tsx
+// Before
+import { Wrapper } from '@googlemaps/react-wrapper';
+
+// After
+import { APIProvider } from '@vis.gl/react-google-maps';
+```
+
+### Replace Wrapper with APIProvider
+
+Update your component structure:
+
+```tsx
+// Before
+import { Wrapper } from '@googlemaps/react-wrapper';
+
+function App() {
+  return (
+    <Wrapper apiKey={API_KEY}>
+      <MyMapComponent />
+    </Wrapper>
+  );
+}
+
+// After
+import { APIProvider } from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <MyMapComponent />
+    </APIProvider>
+  );
+}
+```
+
+### Handle Loading State
+
+If you need to handle loading states, use the `useApiLoadingStatus` hook:
+
+```tsx
+import { APIProvider, useApiLoadingStatus } from '@vis.gl/react-google-maps';
+import { APILoadingStatus } from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <MyMapComponent />
+    </APIProvider>
+  );
+}
+
+function MyMapComponent() {
+  const status = useApiLoadingStatus();
+
+  if (status === APILoadingStatus.LOADING) {
+    return <div>Loading...</div>;
+  }
+
+  if (status === APILoadingStatus.FAILED) {
+    return <div>Error loading maps</div>;
+  }
+
+  return <Map {...mapProps} />;
+}
+```
+
+### Use Built-in Components
+
+Replace imperative map creation with declarative components:
+
+```tsx
+// Before (with @googlemaps/react-wrapper)
+import { Wrapper } from '@googlemaps/react-wrapper';
+import { useEffect, useRef } from 'react';
+
+function MapComponent() {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    
+    new google.maps.Map(ref.current, {
+      center: { lat: 40.7128, lng: -74.0060 },
+      zoom: 12
+    });
+  }, []);
+
+  return <div ref={ref} style={{ width: '100%', height: '400px' }} />;
+}
+
+function App() {
+  return (
+    <Wrapper apiKey={API_KEY}>
+      <MapComponent />
+    </Wrapper>
+  );
+}
+
+// After (with @vis.gl/react-google-maps)
+import { APIProvider, Map } from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <Map
+        defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+        defaultZoom={12}
+        style={{ width: '100%', height: '400px' }}
+      />
+    </APIProvider>
+  );
+}
+```
+
+</Steps>
+
+## Using the Compatibility Wrapper
+
+If you have a large codebase and want to migrate gradually, use the drop-in `Wrapper` component:
+
+<Steps>
+
+### Create the Wrapper Component
+
+Copy the `Wrapper` component code from above into your project:
+
+```tsx filename="components/wrapper.tsx"
+// Copy the full Wrapper implementation from above
+```
+
+### Replace Imports
+
+Update imports throughout your codebase:
+
+```tsx
+// Before
+import { Wrapper } from '@googlemaps/react-wrapper';
+
+// After
+import { Wrapper } from '@/components/wrapper';
+```
+
+### Migrate Component by Component
+
+Gradually replace `Wrapper` usage with `APIProvider` and hooks:
+
+```tsx
+// Step 1: Using compatibility Wrapper
+import { Wrapper } from '@/components/wrapper';
+
+function App() {
+  return (
+    <Wrapper apiKey={API_KEY}>
+      <MapComponent />
+    </Wrapper>
+  );
+}
+
+// Step 2: Migrate to APIProvider
+import { APIProvider } from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <MapComponent />
+    </APIProvider>
+  );
+}
+```
+
+</Steps>
+
+## Callback Props
+
+If you used callback props to track loading state:
+
+```tsx
+// Before
+import { Wrapper } from '@googlemaps/react-wrapper';
+
+function App() {
+  const handleStatusChange = (status: string) => {
+    console.log('API Status:', status);
+  };
+
+  return (
+    <Wrapper apiKey={API_KEY} callback={handleStatusChange}>
+      <MapComponent />
+    </Wrapper>
+  );
+}
+
+// After
+import { APIProvider, useApiLoadingStatus } from '@vis.gl/react-google-maps';
+import { useEffect } from 'react';
+import { APILoadingStatus } from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <StatusTracker />
+      <MapComponent />
+    </APIProvider>
+  );
+}
+
+function StatusTracker() {
+  const status = useApiLoadingStatus();
+
+  useEffect(() => {
+    const mappedStatus = {
+      [APILoadingStatus.LOADING]: 'LOADING',
+      [APILoadingStatus.LOADED]: 'SUCCESS',
+      [APILoadingStatus.FAILED]: 'FAILURE'
+    }[status];
+
+    console.log('API Status:', mappedStatus);
+  }, [status]);
+
+  return null;
+}
+```
+
+## Render Props
+
+If you used render props for custom loading UI:
+
+```tsx
+// Before
+import { Wrapper } from '@googlemaps/react-wrapper';
+
+function App() {
+  const render = (status: string) => {
+    switch (status) {
+      case 'LOADING':
+        return <div>Loading...</div>;
+      case 'FAILURE':
+        return <div>Error loading maps</div>;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Wrapper apiKey={API_KEY} render={render}>
+      <MapComponent />
+    </Wrapper>
+  );
+}
+
+// After
+import { APIProvider, useApiLoadingStatus } from '@vis.gl/react-google-maps';
+import { APILoadingStatus } from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <MapWithLoading />
+    </APIProvider>
+  );
+}
+
+function MapWithLoading() {
+  const status = useApiLoadingStatus();
+
+  if (status === APILoadingStatus.LOADING) {
+    return <div>Loading...</div>;
+  }
+
+  if (status === APILoadingStatus.FAILED) {
+    return <div>Error loading maps</div>;
+  }
+
+  return <MapComponent />;
+}
+```
+
+## Additional Features
+
+After migrating, take advantage of additional features:
+
+### Built-in Components
+
+```tsx
+import {
+  APIProvider,
+  Map,
+  AdvancedMarker,
+  Pin,
+  InfoWindow
+} from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <Map
+        defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+        defaultZoom={12}
+        mapId={'YOUR_MAP_ID'}
+      >
+        <AdvancedMarker position={{ lat: 40.7128, lng: -74.0060 }}>
+          <Pin background={'#22ccff'} borderColor={'#1e89a1'} />
+        </AdvancedMarker>
+      </Map>
+    </APIProvider>
+  );
+}
+```
+
+### Hooks for Common Tasks
+
+```tsx
+import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
+
+function MyComponent() {
+  const map = useMap();
+  const placesLibrary = useMapsLibrary('places');
+
+  // Use map instance and libraries
+}
+```
+
+### Event Handling
+
+```tsx
+import { Map, MapMouseEvent } from '@vis.gl/react-google-maps';
+
+function MyMap() {
+  const handleClick = (event: MapMouseEvent) => {
+    console.log('Clicked:', event.detail.latLng);
+  };
+
+  return (
+    <Map
+      defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+      defaultZoom={12}
+      onClick={handleClick}
+    />
+  );
+}
+```
+
+## Benefits of Migrating
+
+<Steps>
+
+### Declarative Components
+
+Use React components instead of imperative API calls:
+
+```tsx
+// Before: Imperative
+const map = new google.maps.Map(element, options);
+const marker = new google.maps.Marker({ map, position });
+
+// After: Declarative
+<Map {...options}>
+  <AdvancedMarker position={position} />
+</Map>
+```
+
+### TypeScript Support
+
+Full TypeScript support with comprehensive type definitions
+
+### More Components
+
+Built-in components for common use cases:
+- `Map`, `Map3D`
+- `AdvancedMarker`, `Marker3D`
+- `InfoWindow`, `Pin`
+- Control components
+
+### Better Hooks
+
+Useful hooks for common tasks:
+- `useMap()` - Access map instance
+- `useMapsLibrary()` - Load additional libraries
+- `useApiLoadingStatus()` - Track API loading
+
+</Steps>
+
+## Complete Migration Example
+
+### Before
+
+```tsx
+import { Wrapper } from '@googlemaps/react-wrapper';
+import { useEffect, useRef, useState } from 'react';
+
+function MapComponent() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    
+    const newMap = new google.maps.Map(ref.current, {
+      center: { lat: 40.7128, lng: -74.0060 },
+      zoom: 12
+    });
+
+    new google.maps.Marker({
+      map: newMap,
+      position: { lat: 40.7128, lng: -74.0060 },
+      title: 'Hello World!'
+    });
+
+    setMap(newMap);
+  }, []);
+
+  return <div ref={ref} style={{ width: '100%', height: '400px' }} />;
+}
+
+function App() {
+  const [status, setStatus] = useState('LOADING');
+
+  return (
+    <Wrapper
+      apiKey={API_KEY}
+      callback={setStatus}
+      render={(status) => status === 'LOADING' ? <div>Loading...</div> : null}
+    >
+      <MapComponent />
+    </Wrapper>
+  );
+}
+```
+
+### After
+
+```tsx
+import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
+
+function App() {
+  return (
+    <APIProvider apiKey={API_KEY}>
+      <Map
+        defaultCenter={{ lat: 40.7128, lng: -74.0060 }}
+        defaultZoom={12}
+        style={{ width: '100%', height: '400px' }}
+        mapId={'YOUR_MAP_ID'}
+      >
+        <AdvancedMarker
+          position={{ lat: 40.7128, lng: -74.0060 }}
+          title="Hello World!"
+        >
+          <Pin />
+        </AdvancedMarker>
+      </Map>
+    </APIProvider>
+  );
+}
+```
+
+## Related Resources
+
+- [Migration Example](https://github.com/visgl/react-google-maps/tree/main/examples/react-wrapper-migration)
+- [API Reference](/api/components/api-provider)
+- [Getting Started](/quickstart)
